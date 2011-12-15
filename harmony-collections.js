@@ -2,7 +2,7 @@
   "use strict";
 
   var Map = exports.Map = (function(){
-    var maps = [], keysets = [], valsets = [], last = { key: 500, map: 500 };
+    var maps = [], keysets = [], valsets = [], last = {};
 
     function Map(){
       var map = Object.create(Map.prototype);
@@ -68,7 +68,7 @@
   })();
 
 
-  var WeakMap = exports.WeakMap = (function(){
+  exports.WeakMap = (function(){
     var weakmaps = Map();
     var last = {};
 
@@ -106,7 +106,7 @@
     return Object.freeze(WeakMap);
   })();
 
-  var Set = exports.Set = (function(){
+  exports.Set = (function(){
     var sets = Map();
     var last = {};
 
