@@ -5,7 +5,7 @@
     if ('set' in mapproto && 'get' in mapproto && 'has' in mapproto && 'delete' in mapproto) return;
   }
 
-  var Map = exports.Map = (function(){
+  var Map = (function(){
     var maps = [], keysets = [], valsets = [], last = {};
 
     function Map(){
@@ -68,10 +68,10 @@
       return -1;
     }
 
-    return Object.freeze(Map);
+    return Map;
   })();
 
-  exports.WeakMap = (function(){
+  var WeakMap = (function(){
     var weakmaps = Map();
     var last = {};
 
@@ -106,10 +106,10 @@
       throw new TypeError("This isn't a WeakMap");
     }
 
-    return Object.freeze(WeakMap);
+    return WeakMap;
   })();
 
-  exports.Set = (function(){
+  var Set = (function(){
     var sets = Map();
     var last = {};
 
@@ -118,6 +118,7 @@
       sets.set(set, Map());
       return set;
     }
+
     Set.prototype = Object.create(null, {
       has: value(function has(key){
         return search(this).has(key);
@@ -140,13 +141,33 @@
       throw new TypeError("This isn't a Set");
     }
 
-    return Object.freeze(Set);
+    return Set;
   })();
 
-
-  function value(val){
-    return { value: val, enumerable: true };
+  function value(val, hidden){
+    if (typeof val === 'function') {
+      Object.defineProperty(val, 'toString', {
+        configurable: true,
+        writable: true,
+        value: toString
+      });
+    }
+    return { value: val, enumerable: !hidden };
   }
+
+  function toString(){
+    return 'function '+this.name+'() { [native code] }';
+  }
+
+  function toStringType(type){
+    return value(function toString(){ return '[object '+type+']' }, true);
+  }
+
+  [Map, WeakMap, Set].forEach(function(obj){
+    Object.defineProperty(obj, 'toString', value(toString, true));
+    Object.defineProperty(obj.prototype, 'toString', toStringType(obj.name));
+    exports[obj.name] = Object.freeze(obj);
+  });
 
 })(
   typeof exports !== 'undefined' ? exports : this,
