@@ -33,7 +33,7 @@
       }),
       delete: value(function del(key){
         var map = search(this, key);
-        if (!~map.index) return false;
+        if (!~map.index) return true;
         map.keys.splice(map.index, 1);
         map.vals.splice(map.index, 1);
         last.keyi = null;
@@ -122,7 +122,7 @@
       has: value(function has(key){
         return search(this).has(key);
       }),
-      set: value(function set(key){
+      add: value(function add(key){
         search(this).set(key, true);
       }),
       delete: value(function del(key){
