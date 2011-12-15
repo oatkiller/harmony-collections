@@ -1,6 +1,9 @@
 (function(exports, global){
   "use strict";
-  if (global.Map && global.Map.set && global.Map.get && global.Map.has && global.Map.delete) return;
+  if (global.Map && global.Map.prototype) {
+    var mapproto = global.Map.prototype;
+    if ('set' in mapproto && 'get' in mapproto && 'has' in mapproto && 'delete' in mapproto) return;
+  }
 
   var Map = exports.Map = (function(){
     var maps = [], keysets = [], valsets = [], last = {};
@@ -97,8 +100,8 @@
       if (last.weakmap === weakmap) return last.map;
       var map = weakmaps.get(weakmap);
       if (~map) {
-        last = { weakmap: weakmap, map: map };
-        return map;
+        last.weakmap = weakmap;
+        return last.map = map;
       }
       throw new TypeError("This isn't a WeakMap");
     }
@@ -131,8 +134,8 @@
       if (last.set === set) return last.map;
       var map = sets.get(set);
       if (~map) {
-        last = { set: set, map: map };
-        return map;
+        last.set = set;
+        return last.map = map;
       }
       throw new TypeError("This isn't a Set");
     }
