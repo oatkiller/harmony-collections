@@ -35,12 +35,12 @@ WeakMaps require the use of objects as keys; primitives are not valid keys. Keys
 
 WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
 
-__All__ objects are valid keys, including WeakMaps themselves.
+*All* objects are valid keys, including WeakMaps themselves.
 
 
 # Map
 
-Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected.
+Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself. Primitives are valid keys for Maps, so any possible value can be used as a key including undefined, null, and NaN.
 
 * __set__ `map.set(key, value)`. Key is any value including objects. Primitives are valid keys but uniqueness is matched by their value since primitives don't have identity. Objects are matched by identity. Returns the value passed in.
 * __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
