@@ -1,5 +1,5 @@
 (function(exports, global){
-
+  "use strict";
   var proto = Object.create(Object.prototype, { toString: value(toString) });
 
   if (deepCheck('Map', ['get', 'set', 'has', 'delete'])) {
@@ -70,7 +70,7 @@
             index: keyi
           };
         }
-        IncompatibleError(Map, search.caller);
+        IncompatibleError(Map);
       }
 
       function find(keys, key){
@@ -124,7 +124,7 @@
           last.weakmap = weakmap;
           return last.map = map;
         }
-        IncompatibleError(WeakMap, search.caller);
+        IncompatibleError(WeakMap);
       }
 
       return WeakMap;
@@ -171,7 +171,7 @@
           last.set = set;
           return last.map = map;
         }
-        IncompatibleError(Set, search.caller);
+        IncompatibleError(Set);
       }
 
       return Set;
@@ -199,9 +199,9 @@
     }
   }
 
-  function IncompatibleError(type, origin){
+  function IncompatibleError(type){
     var err = new TypeError();
-    err.message = type.name+'.prototype.'+origin.name + ' called on incompatible object.';
+    err.message = type.name+' function called on an incompatible object.';
     var stack = err.stack.split('\n');
     stack.splice(1, 3);
     err.stack = stack.join('\n')
