@@ -1,5 +1,5 @@
 (function(exports, global){
-  "use strict";
+
   if (global.Map && global.Map.prototype) {
     var mapproto = global.Map.prototype;
     if ('set' in mapproto && 'get' in mapproto && 'has' in mapproto && 'delete' in mapproto) return;
@@ -58,7 +58,7 @@
           index: keyi
         };
       }
-      throw new TypeError("This isn't a Map");
+      IncompatibleError(Map, search.caller);
     }
 
     function find(keys, key){
@@ -76,7 +76,7 @@
 
   var WeakMap = (function(){
     var weakmaps = Map();
-    var last = {};
+    var last = { weakmap: "null", map: "null" };
 
     function WeakMap(){
       var weakmap = Object.create(WeakMap.prototype);
@@ -103,11 +103,11 @@
     function search(weakmap){
       if (last.weakmap === weakmap) return last.map;
       var map = weakmaps.get(weakmap);
-      if (~map) {
+      if (map) {
         last.weakmap = weakmap;
         return last.map = map;
       }
-      throw new TypeError("This isn't a WeakMap");
+      IncompatibleError(WeakMap, search.caller);
     }
 
     return WeakMap;
@@ -139,11 +139,11 @@
     function search(set){
       if (last.set === set) return last.map;
       var map = sets.get(set);
-      if (~map) {
+      if (map) {
         last.set = set;
         return last.map = map;
       }
-      throw new TypeError("This isn't a Set");
+      IncompatibleError(Set, search.caller);
     }
 
     return Set;
@@ -160,9 +160,11 @@
     return { value: val };
   }
 
+  var source = (Function+'').split('Function');
+
   function toString(){
     if (typeof this === 'function') {
-      return 'function '+this.name+'() { [native code] }';
+      return source[0]+this.name+source[1];
     } else {
       return '[object '+Object.getPrototypeOf(this).constructor.name+']';
     }
@@ -172,6 +174,14 @@
     exports[obj.name] = Object.freeze(obj);
   });
 
+  function IncompatibleError(type, origin){
+    var err = new TypeError();
+    err.message = type.name+'.prototype.'+origin.name + ' called on incompatible object.';
+    var stack = err.stack.split('\n');
+    stack.splice(1, 3);
+    err.stack = stack.join('\n')
+    throw err;
+  }
 
 })(
   typeof exports !== 'undefined' ? exports : this,
