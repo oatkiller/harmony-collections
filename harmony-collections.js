@@ -38,10 +38,16 @@
           last.keyi = null;
           return true;
         }),
+        keys: value(function keys(){
+          return [].concat(search(this).keys);
+        }),
+        values: value(function values(){
+          return [].concat(search(this).vals);
+        }),
         iterate: value(function iterate(callback, context){
           var map = search(this);
-          for (var i=0; map.keys[i++];) {
-            callback.call(context || null, i, map.keys[i], map.vals[i]);
+          for (var i=0, len=map.keys.length; i < len; i++) {
+            callback.call(context || null, map.keys[i], map.vals[i], i);
           }
         })
       });
@@ -50,7 +56,7 @@
         var mapi = map === last.map ? last.mapi : find(maps, map);
         if (~mapi) {
           if (key !== undefined) {
-            var keyi = (mapi === last.mapi && key === last.key) ? last.keyi : find(keysets[mapi], key);
+            var keyi = (mapi === last.mapi && egal(key, last.key)) ? last.keyi : find(keysets[mapi], key);
             last.key = key;
             last.keyi = ~keyi ? keyi : null;
           } else {
@@ -70,7 +76,7 @@
       function find(keys, key){
         var i = keys.length;
         while (i--) {
-          if (key === keys[i]) {
+          if (egal(key, keys[i])) {
             return i;
           }
         }
@@ -147,8 +153,14 @@
         delete: value(function del(key){
           return search(this).delete(key);
         }),
+        values: value(function values(callback, context){
+          return search(this).keys();
+        }),
         iterate: value(function iterate(callback, context){
-          search(this).iterate(callback, context);
+          var keys = search(this).keys();
+          for (var i=0, len=keys.length; i < len; i++) {
+            callback.call(context || null, keys[i], i);
+          }
         })
       });
 
@@ -202,6 +214,13 @@
       return !functions.every(function(fn){ return fn in global[name].prototype })
     }
     return true;
+  }
+
+  function egal(x, y){
+    if (x === y) {
+      return x !== 0 || 1 / x === 1 / y;
+    }
+    return x !== x && y !== y;
   }
 
 })(

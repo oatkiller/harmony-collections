@@ -26,7 +26,9 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
 * __has__ `map.has(key)`. Returns boolean.
 * __delete__ `map.delete(key)`. Removes value from the Map if found. Returns true.
-* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, index, key, value)`.
+* __keys__ `map.keys()`. Returns array of contained keys.
+* __values__ `map.values()`. Return array of contained values.
+* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
 
 
 # Set
@@ -36,10 +38,10 @@ Sets are similar to arrays but enforce uniqueness of values. Adding the same val
 * __add__ `set.add(value)`. Inserts a value of any type into the set if it's not already in the set.
 * __has__ `set.has(value)`. Returns boolean.
 * __delete__ `set.delete(value)`. Removes value from the Set if found. Returns true.
-* __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || null, index, value)`.
+* __values__ `map.values()`. Return array of contained values.
+* __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || null, value, index)`.
 
 
 # Todo
 
 * Check up on iteration semantics for ES6 as they stand now.
-* Enforce WeakMap semantics on non-primitive keys.
