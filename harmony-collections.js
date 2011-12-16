@@ -1,153 +1,154 @@
 (function(exports, global){
 
-  if (global.Map && global.Map.prototype) {
-    var mapproto = global.Map.prototype;
-    if ('set' in mapproto && 'get' in mapproto && 'has' in mapproto && 'delete' in mapproto) return;
-  }
-
   var proto = Object.create(Object.prototype, { toString: value(toString) });
 
-  var Map = (function(){
-    var maps = [], keysets = [], valsets = [], last = {};
+  if (deepCheck('Map', ['get', 'set', 'has', 'delete'])) {
+    var Map = exports.Map = (function(){
+      var maps = [], keysets = [], valsets = [], last = {};
 
-    function Map(){
-      var map = Object.create(Map.prototype);
-      maps.push(map);
-      keysets.push([]);
-      valsets.push([]);
-      return map;
-    }
-
-    Map.prototype = Object.create(proto, {
-      constructor: value(Map),
-      set: value(function set(key, val){
-        var map = search(this, key);
-        if (map.index < 0) map.index = map.keys.length;
-        map.keys[map.index] = key;
-        last.keyi = map.index;
-        return map.vals[map.index] = val;
-      }),
-      get: value(function get(key){
-        var map = search(this, key);
-        return ~map.index ? map.vals[map.index] : undefined;
-      }),
-      has: value(function has(key){
-        return !!~search(this, key).index;
-      }),
-      delete: value(function del(key){
-        var map = search(this, key);
-        if (!~map.index) return true;
-        map.keys.splice(map.index, 1);
-        map.vals.splice(map.index, 1);
-        last.keyi = null;
-        return true;
-      })
-    });
-
-    function search(map, key){
-      var mapi = map === last.map ? last.mapi : find(maps, map);
-      if (~mapi) {
-        var keyi = (mapi === last.mapi && key === last.key) ? last.keyi : find(keysets[mapi], key);
-        last.map = map;
-        last.mapi = mapi;
-        last.key = key;
-        last.keyi = ~keyi ? keyi : null;
-        return {
-          keys: keysets[mapi],
-          vals: valsets[mapi],
-          index: keyi
-        };
+      function Map(){
+        var map = Object.create(Map.prototype);
+        maps.push(map);
+        keysets.push([]);
+        valsets.push([]);
+        return map;
       }
-      IncompatibleError(Map, search.caller);
-    }
 
-    function find(keys, key){
-      var i = keys.length;
-      while (i--) {
-        if (key === keys[i]) {
-          return i;
+      Map.prototype = Object.create(proto, {
+        constructor: value(Map),
+        set: value(function set(key, val){
+          var map = search(this, key);
+          if (map.index < 0) map.index = map.keys.length;
+          map.keys[map.index] = key;
+          last.keyi = map.index;
+          return map.vals[map.index] = val;
+        }),
+        get: value(function get(key){
+          var map = search(this, key);
+          return ~map.index ? map.vals[map.index] : undefined;
+        }),
+        has: value(function has(key){
+          return !!~search(this, key).index;
+        }),
+        delete: value(function del(key){
+          var map = search(this, key);
+          if (!~map.index) return true;
+          map.keys.splice(map.index, 1);
+          map.vals.splice(map.index, 1);
+          last.keyi = null;
+          return true;
+        })
+      });
+
+      function search(map, key){
+        var mapi = map === last.map ? last.mapi : find(maps, map);
+        if (~mapi) {
+          var keyi = (mapi === last.mapi && key === last.key) ? last.keyi : find(keysets[mapi], key);
+          last.map = map;
+          last.mapi = mapi;
+          last.key = key;
+          last.keyi = ~keyi ? keyi : null;
+          return {
+            keys: keysets[mapi],
+            vals: valsets[mapi],
+            index: keyi
+          };
         }
+        IncompatibleError(Map, search.caller);
       }
-      return -1;
-    }
 
-    return Map;
-  })();
-
-  var WeakMap = (function(){
-    var weakmaps = Map();
-    var last = { weakmap: "null", map: "null" };
-
-    function WeakMap(){
-      var weakmap = Object.create(WeakMap.prototype);
-      weakmaps.set(weakmap, Map());
-      return weakmap;
-    }
-
-    WeakMap.prototype = Object.create(proto, {
-      constructor: value(WeakMap),
-      set: value(function set(key, val){
-        return search(this).set(key, val);
-      }),
-      get: value(function get(key){
-        return search(this).get(key);
-      }),
-      has: value(function has(key){
-        return search(this).has(key);
-      }),
-      delete: value(function del(key){
-        return search(this).delete(key);
-      })
-    });
-
-    function search(weakmap){
-      if (last.weakmap === weakmap) return last.map;
-      var map = weakmaps.get(weakmap);
-      if (map) {
-        last.weakmap = weakmap;
-        return last.map = map;
+      function find(keys, key){
+        var i = keys.length;
+        while (i--) {
+          if (key === keys[i]) {
+            return i;
+          }
+        }
+        return -1;
       }
-      IncompatibleError(WeakMap, search.caller);
-    }
 
-    return WeakMap;
-  })();
+      return Map;
+    })();
+  }
 
-  var Set = (function(){
-    var sets = Map();
-    var last = {};
+  if (deepCheck('WeakMap', ['get', 'set', 'has', 'delete'])) {
+    var WeakMap = exports.WeakMap = (function(){
+      var weakmaps = Map();
+      var last = { weakmap: "null", map: "null" };
 
-    function Set(){
-      var set = Object.create(Set.prototype);
-      sets.set(set, Map());
-      return set;
-    }
-
-    Set.prototype = Object.create(proto, {
-      constructor: value(Set),
-      has: value(function has(key){
-        return search(this).has(key);
-      }),
-      add: value(function add(key){
-        search(this).set(key, true);
-      }),
-      delete: value(function del(key){
-        return search(this).delete(key);
-      })
-    });
-
-    function search(set){
-      if (last.set === set) return last.map;
-      var map = sets.get(set);
-      if (map) {
-        last.set = set;
-        return last.map = map;
+      function WeakMap(){
+        var weakmap = Object.create(WeakMap.prototype);
+        weakmaps.set(weakmap, Map());
+        return weakmap;
       }
-      IncompatibleError(Set, search.caller);
-    }
 
-    return Set;
-  })();
+      WeakMap.prototype = Object.create(proto, {
+        constructor: value(WeakMap),
+        set: value(function set(key, val){
+          return search(this).set(key, val);
+        }),
+        get: value(function get(key){
+          return search(this).get(key);
+        }),
+        has: value(function has(key){
+          return search(this).has(key);
+        }),
+        delete: value(function del(key){
+          return search(this).delete(key);
+        })
+      });
+
+      function search(weakmap){
+        if (last.weakmap === weakmap) return last.map;
+        var map = weakmaps.get(weakmap);
+        if (map) {
+          last.weakmap = weakmap;
+          return last.map = map;
+        }
+        IncompatibleError(WeakMap, search.caller);
+      }
+
+      return WeakMap;
+    })();
+  }
+
+  if (deepCheck('Set', ['get', 'add', 'delete'])) {
+    var Set = exports.Set = (function(){
+      var sets = Map();
+      var last = {};
+
+      function Set(){
+        var set = Object.create(Set.prototype);
+        sets.set(set, Map());
+        return set;
+      }
+
+      Set.prototype = Object.create(proto, {
+        constructor: value(Set),
+        has: value(function has(key){
+          return search(this).has(key);
+        }),
+        add: value(function add(key){
+          search(this).set(key, true);
+        }),
+        delete: value(function del(key){
+          return search(this).delete(key);
+        })
+      });
+
+      function search(set){
+        if (last.set === set) return last.map;
+        var map = sets.get(set);
+        if (map) {
+          last.set = set;
+          return last.map = map;
+        }
+        IncompatibleError(Set, search.caller);
+      }
+
+      return Set;
+    })();
+  }
 
   function value(val, hidden){
     if (typeof val === 'function') {
@@ -170,10 +171,6 @@
     }
   }
 
-  [Map, WeakMap, Set].forEach(function(obj){
-    exports[obj.name] = Object.freeze(obj);
-  });
-
   function IncompatibleError(type, origin){
     var err = new TypeError();
     err.message = type.name+'.prototype.'+origin.name + ' called on incompatible object.';
@@ -181,6 +178,14 @@
     stack.splice(1, 3);
     err.stack = stack.join('\n')
     throw err;
+  }
+
+  function deepCheck(name, functions){
+    if (typeof window === 'undefined') return true;
+    if (name in global && global[name].name === name && global[name].prototype) {
+      return !functions.every(function(fn){ return fn in global[name].prototype })
+    }
+    return true;
   }
 
 })(
