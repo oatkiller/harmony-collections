@@ -227,3 +227,17 @@
   typeof exports !== 'undefined' ? exports : this,
   typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : this
 );
+
+var aWeakMap = exports.WeakMap();
+
+aWeakMap.set(this, { secretname: 'Dark Secrets' });
+console.log(Object.getOwnPropertyNames(aWeakMap)) // []
+for (var k in aWeakMap) { console.log(k) } // nothing
+console.log(aWeakMap.get(this)) // { secretname: 'Dark Secrets' }
+
+var aWeakMap = WeakMap();
+
+aWeakMap.set(this, { secretname: 'Dark Secrets' });
+console.log(Object.getOwnPropertyNames(aWeakMap)) // []
+for (var k in aWeakMap) { console.log(k) } // nothing
+console.log(aWeakMap.get(this)) // { secretname: 'Dark Secrets' }

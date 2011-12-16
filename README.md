@@ -11,22 +11,29 @@ WeakMap won't give the same garbage collector magic as the native one but it can
 
 Maps, WeakMaps, and Sets can each be created using their constructor with or without `new`. Examples:
 
-    var aWeakmap = new WeakMap;
+    var aWeakMap = new WeakMap;
     var aMap = Map();
     var aSet = new Set();
 
 Items in a collection do not appear in any manner through traditional inspection. The only way to interact with the data contained in a collection is by using the functions below.
 
+    var aWeakMap = new WeakMap;
+    aWeakMap.set(this, { secrets: 'Dark Secrets' });
+    console.log(Object.getOwnPropertyNames(aWeakMap)); // []
+    for (var k in aWeakMap) { console.log(k); }         // nothing
+    console.log(aWeakMap.get(this));                    // { secrets: 'Dark Secrets' }
+
 
 # WeakMap
 
-WeakMaps allow you to match any key to a value. The keys can be objects themselves. Keys are unique and setting the same key multiple times will overwrite the value. There is no way to know all the items in a WeakMap by introspecting it. There's no way to iterate through it's values or know how many there are. The only way to retieve a value is to have the exact object used for the key.
+WeakMaps allow you to match any key to a value. The keys can be objects themselves. Keys are unique and setting the same key multiple times will overwrite the value. There is no way to know all the items in a WeakMap by introspecting it. There's no way to iterate through it's values or know how many there are. Because WeakMap exposes no method of listing keys or values the only way to extract a value from it is by having a direct reference to the object used as the key.
 
 * __set__ `weakmap.set(key, value)`. Key is any value including objects. Only non-primitives can be used as keys.
 * __get__ `weakmap.get(key)`. Returns the value that key corresponds to the key or undefined.
 * __has__ `weakmap.has(key)`. Returns boolean.
 * __delete__ `weakmap.delete(key)`. Removes value from the WeakMap if found. Returns true.
 
+WeakMaps allow for some interestnig use cases like anonymous message passing, and secret passing analogous to public key encryption. Messages can be passed to objects using the target itself as the key to extract the hidden message, with no reference to the originator being left.
 
 
 # Map
