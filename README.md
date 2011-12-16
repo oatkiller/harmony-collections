@@ -7,7 +7,12 @@ For WeakMaps this means there's no way to find what's inside it or how many item
 WeakMap won't give the same garbage collector magic as the native one but it can be used with the same code.
 
 
-# Usage
+# Shim Usage
+
+The function `attach` is exported along with Map, WeakMap, and Set which will inspect the global object for the existence of Map, WeakMap, and Set in turn and add ones that are missing. Each one is checked separately because WeakMap's existence predates the other two so there's no guarantee which may already exist. If the global object is the window then `attach` is automatically executed.
+
+
+# Collections Usage
 
 Maps, WeakMaps, and Sets can each be created using their constructor with or without `new`. Examples:
 
@@ -35,12 +40,12 @@ WeakMaps require the use of objects as keys; primitives are not valid keys. Keys
 
 WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
 
-*All* objects are valid keys, including WeakMaps themselves.
+*All* non-primitives are valid keys, including WeakMaps themselves.
 
 
 # Map
 
-Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself. Primitives are valid keys for Maps, so any possible value can be used as a key including undefined, null, and NaN.
+Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.
 
 * __set__ `map.set(key, value)`. Key is any value including objects. Primitives are valid keys but uniqueness is matched by their value since primitives don't have identity. Objects are matched by identity. Returns the value passed in.
 * __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
@@ -50,6 +55,7 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __values__ `map.values()`. Return array of contained values.
 * __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
 
+*All possible values* are valid keys, including undefined, null, and NaN.
 
 # Set
 
