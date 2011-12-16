@@ -37,17 +37,27 @@
           map.vals.splice(map.index, 1);
           last.keyi = null;
           return true;
+        }),
+        iterate: value(function iterate(callback, context){
+          var map = search(this);
+          for (var i=0; map.keys[i++];) {
+            callback.call(context || null, i, map.keys[i], map.vals[i]);
+          }
         })
       });
 
       function search(map, key){
         var mapi = map === last.map ? last.mapi : find(maps, map);
         if (~mapi) {
-          var keyi = (mapi === last.mapi && key === last.key) ? last.keyi : find(keysets[mapi], key);
+          if (key !== undefined) {
+            var keyi = (mapi === last.mapi && key === last.key) ? last.keyi : find(keysets[mapi], key);
+            last.key = key;
+            last.keyi = ~keyi ? keyi : null;
+          } else {
+            last.keyi = last.key = null
+          }
           last.map = map;
           last.mapi = mapi;
-          last.key = key;
-          last.keyi = ~keyi ? keyi : null;
           return {
             keys: keysets[mapi],
             vals: valsets[mapi],
@@ -133,6 +143,9 @@
         }),
         delete: value(function del(key){
           return search(this).delete(key);
+        }),
+        iterate: value(function iterate(callback, context){
+          search(this).iterate(callback, context);
         })
       });
 
