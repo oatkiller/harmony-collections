@@ -5,6 +5,8 @@
     if ('set' in mapproto && 'get' in mapproto && 'has' in mapproto && 'delete' in mapproto) return;
   }
 
+  var proto = Object.create(Object.prototype, { toString: value(toString) });
+
   var Map = (function(){
     var maps = [], keysets = [], valsets = [], last = {};
 
@@ -16,7 +18,8 @@
       return map;
     }
 
-    Map.prototype = Object.create(null, {
+    Map.prototype = Object.create(proto, {
+      constructor: value(Map),
       set: value(function set(key, val){
         var map = search(this, key);
         if (map.index < 0) map.index = map.keys.length;
@@ -81,7 +84,8 @@
       return weakmap;
     }
 
-    WeakMap.prototype = Object.create(null, {
+    WeakMap.prototype = Object.create(proto, {
+      constructor: value(WeakMap),
       set: value(function set(key, val){
         return search(this).set(key, val);
       }),
@@ -119,7 +123,8 @@
       return set;
     }
 
-    Set.prototype = Object.create(null, {
+    Set.prototype = Object.create(proto, {
+      constructor: value(Set),
       has: value(function has(key){
         return search(this).has(key);
       }),
@@ -152,22 +157,21 @@
         value: toString
       });
     }
-    return { value: val, enumerable: !hidden };
+    return { value: val };
   }
 
   function toString(){
-    return 'function '+this.name+'() { [native code] }';
-  }
-
-  function toStringType(type){
-    return value(function toString(){ return '[object '+type+']' }, true);
+    if (typeof this === 'function') {
+      return 'function '+this.name+'() { [native code] }';
+    } else {
+      return '[object '+Object.getPrototypeOf(this).constructor.name+']';
+    }
   }
 
   [Map, WeakMap, Set].forEach(function(obj){
-    Object.defineProperty(obj, 'toString', value(toString, true));
-    Object.defineProperty(obj.prototype, 'toString', toStringType(obj.name));
     exports[obj.name] = Object.freeze(obj);
   });
+
 
 })(
   typeof exports !== 'undefined' ? exports : this,
