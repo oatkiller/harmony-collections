@@ -12,12 +12,10 @@ WeakMap won't give the same garbage collector magic as the native one but it can
 Maps allow you to match any key to a value. The keys can be objects themselves. Keys are unique and setting the same key multiple times will overwrite the value.
 
 * __set__ `map.set(key, value)`. Key is any value including objects. Primitives like strings can only be matched by their content. Objects are matched by identity. Returns the value passed in.
-
 * __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
-
 * __has__ `map.has(key)`. Returns boolean.
-
 * __delete__ `map.delete(key)`. Returns true.
+* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, index, key, value)`.
 
 
 # WeakMap
@@ -33,10 +31,10 @@ Sets are similar to arrays but enforce uniqueness of values. Adding the same val
 * __add__ `set.add(value)`. Inserts a value of any type into the set if it's not already in the set.
 * __has__ `set.has(value)`. Returns boolean.
 * __delete__ `set.delete(value)`. Removes value from the set if found. Returns true.
+* __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || null, index, value)`.
 
 
 # Todo
 
-* A reasonable approximation of iteration if possible, though matching the ES6 API likely won't be
-possible due to new language semantics.
+* Check up on iteration semantics for ES6 as they stand now.
 * Enforce WeakMap semantics on non-primitive keys.
