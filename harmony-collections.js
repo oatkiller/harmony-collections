@@ -95,6 +95,9 @@
       WeakMap.prototype = Object.create(proto, {
         constructor: value(WeakMap),
         set: value(function set(key, val){
+          if (Object(key) !== key) {
+            throw new TypeError('Primitives are not valid WeakMap keys.');
+          }
           return search(this).set(key, val);
         }),
         get: value(function get(key){
