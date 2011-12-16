@@ -6,6 +6,10 @@
     var Map = exports.Map = (function(){
       var maps = [], keysets = [], valsets = [], last = {};
 
+
+      /**
+       * Collection allowing any value to be a key: objects, primitives, undefined.
+       */
       function Map(){
         var map = Object.create(Map.prototype);
         maps.push(map);
@@ -14,8 +18,18 @@
         return map;
       }
 
+      /**
+       * @type {Map}
+       */
       Map.prototype = Object.create(proto, {
         constructor: value(Map),
+
+        /**
+         * Add or update a pair in the map. Enforces uniqueness by overwriting.
+         * @param  {Any} key
+         * @param  {Any} val
+         * @return {Any} returns value passed in
+         */
         set: value(function set(key, val){
           var map = search(this, key);
           if (map.index < 0) map.index = map.keys.length;
@@ -23,13 +37,31 @@
           last.keyi = map.index;
           return map.vals[map.index] = val;
         }),
+
+        /**
+         * Retrieve the value that matches key
+         * @param  {Any} key
+         * @return {Any}
+         */
         get: value(function get(key){
           var map = search(this, key);
           return ~map.index ? map.vals[map.index] : undefined;
         }),
+
+        /**
+         * Check if key is in Map
+         * @param  {Any} key
+         * @return {Boolean}
+         */
         has: value(function has(key){
           return !!~search(this, key).index;
         }),
+
+        /**
+         * Remove key and matching value if found
+         * @param  {Any} key
+         * @return {Boolean} Always true
+         */
         delete: value(function del(key){
           var map = search(this, key);
           if (!~map.index) return true;
@@ -38,12 +70,28 @@
           last.keyi = null;
           return true;
         }),
+
+        /**
+         * Retrieve all keys
+         * @return {Array}
+         */
         keys: value(function keys(){
           return [].concat(search(this).keys);
         }),
+
+        /**
+         * Retrieve all values
+         * @return {Array}
+         */
         values: value(function values(){
           return [].concat(search(this).vals);
         }),
+
+        /**
+         * Loop through the Map raising callback for each
+         * @param  {Function} callback  `callback(key, value, index)`
+         * @param  {Object}   context    The `this` binding for callbacks, default null
+         */
         iterate: value(function iterate(callback, context){
           var map = search(this);
           for (var i=0, len=map.keys.length; i < len; i++) {
@@ -51,6 +99,7 @@
           }
         })
       });
+
 
       function search(map, key){
         var mapi = map === last.map ? last.mapi : find(maps, map);
@@ -90,28 +139,59 @@
   if (deepCheck('WeakMap', ['get', 'set', 'has', 'delete'])) {
     var WeakMap = exports.WeakMap = (function(){
       var weakmaps = Map();
-      var last = { weakmap: "null", map: "null" };
+      var last = {};
 
+      /**
+       * Collection using objects with unique identities as keys that disallows enumeration.
+       */
       function WeakMap(){
         var weakmap = Object.create(WeakMap.prototype);
         weakmaps.set(weakmap, Map());
         return weakmap;
       }
 
+      /**
+       * @type {WeakMap}
+       */
       WeakMap.prototype = Object.create(proto, {
         constructor: value(WeakMap),
+
+        /**
+         * Add or update a pair in the map. Enforces uniqueness by overwriting.
+         * @param  {Object} Requires non-primitive
+         * @param  {Any} val
+         * @return {Any} returns value passed in
+         */
         set: value(function set(key, val){
           if (Object(key) !== key) {
             throw new TypeError('Primitives are not valid WeakMap keys.');
           }
           return search(this).set(key, val);
         }),
+
+        /**
+         * Retrieve the value that matches key
+         * @param  {Object} key
+         * @return {Any}
+         */
         get: value(function get(key){
           return search(this).get(key);
         }),
+
+        /**
+         * Check if key is in Map
+         * @param  {Object} key
+         * @return {Boolean}
+         */
         has: value(function has(key){
           return search(this).has(key);
         }),
+
+        /**
+         * Remove key and matching value if found
+         * @param  {Object} key
+         * @return {Boolean} Always true
+         */
         delete: value(function del(key){
           return search(this).delete(key);
         })
@@ -131,31 +211,65 @@
     })();
   }
 
-  if (deepCheck('Set', ['get', 'add', 'delete'])) {
+  if (deepCheck('Set', ['add', 'has', 'delete'])) {
     var Set = exports.Set = (function(){
       var sets = Map();
       var last = {};
 
+      /**
+       * Collection of values that enforces uniqueness.
+       */
       function Set(){
         var set = Object.create(Set.prototype);
         sets.set(set, Map());
         return set;
       }
 
+      /*
+       * @type {Set}
+       */
       Set.prototype = Object.create(proto, {
         constructor: value(Set),
-        has: value(function has(key){
-          return search(this).has(key);
+
+        /**
+         * Insert value if not found, enforcing uniqueness.
+         * @param  {Any} val
+         */
+        add: value(function add(val){
+          search(this).set(val, true);
         }),
-        add: value(function add(key){
-          search(this).set(key, true);
+
+        /**
+         * Check if value is in Set
+         * @param  {Any}      val
+         * @return {Boolean}
+         */
+        has: value(function has(val){
+          return search(this).has(val);
         }),
-        delete: value(function del(key){
-          return search(this).delete(key);
+
+        /**
+         * Remove value if found
+         * @param  {Any}      val
+         * @return {Boolean}  Always true
+         */
+        delete: value(function del(val){
+          return search(this).delete(val);
         }),
+
+        /**
+         * Retrieve all values
+         * @return {Array}
+         */
         values: value(function values(callback, context){
           return search(this).keys();
         }),
+
+        /**
+         * Loop through the Set raising callback for each
+         * @param  {Function} callback  `callback(value, index)`
+         * @param  {Object}   context    The `this` binding for callbacks, default null
+         */
         iterate: value(function iterate(callback, context){
           var keys = search(this).keys();
           for (var i=0, len=keys.length; i < len; i++) {
@@ -208,6 +322,13 @@
     throw err;
   }
 
+  /**
+   * Check an function's name and names of proprties on its prototype. Map and Set are common
+   * names so checking that they exist isn't adequate.
+   * @param  {String} name        Name of the constructor
+   * @param  {String[]} functions Names of expected prototype properties
+   * @return {Boolean}
+   */
   function deepCheck(name, functions){
     if (typeof window === 'undefined') return true;
     if (name in global && global[name].name === name && global[name].prototype) {
@@ -216,6 +337,12 @@
     return true;
   }
 
+  /**
+   * Strict equals with a couple differences: egal(-0, 0) is false, egal(NaN, NaN) is true
+   * @param  {Any} x
+   * @param  {Any} y
+   * @return {Boolean}
+   */
   function egal(x, y){
     if (x === y) {
       return x !== 0 || 1 / x === 1 / y;
