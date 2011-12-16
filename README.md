@@ -26,14 +26,16 @@ Items in a collection do not appear in any manner through traditional inspection
 
 # WeakMap
 
-WeakMaps allow you to match any key to a value. The keys can be objects themselves. Keys are unique and setting the same key multiple times will overwrite the value. There is no way to know all the items in a WeakMap by introspecting it. There's no way to iterate through it's values or know how many there are. Because WeakMap exposes no method of listing keys or values the only way to extract a value from it is by having a direct reference to the object used as the key.
+WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are per WeakMap are unique and setting the same key will overwrite the old value. WeakMaps provide for no method of iteration or listing the keys or values contained inside. Because WeakMaps expose no method of listing keys or values, and keys are required to be full-fledged objects with unique identities, the only way to extract a value from it is by having a direct reference to the object used as the key.
 
 * __set__ `weakmap.set(key, value)`. Key is any value including objects. Only non-primitives can be used as keys.
 * __get__ `weakmap.get(key)`. Returns the value that key corresponds to the key or undefined.
 * __has__ `weakmap.has(key)`. Returns boolean.
 * __delete__ `weakmap.delete(key)`. Removes value from the WeakMap if found. Returns true.
 
-WeakMaps allow for some interestnig use cases like anonymous message passing, and secret passing analogous to public key encryption. Messages can be passed to objects using the target itself as the key to extract the hidden message, with no reference to the originator being left.
+WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
+
+__All__ objects are valid keys, including WeakMaps themselves.
 
 
 # Map
@@ -60,6 +62,6 @@ Sets are similar to arrays but enforce uniqueness of values. Adding the same val
 * __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || null, value, index)`.
 
 
-# Todo
+# TODO
 
 * Check up on iteration semantics for ES6 as they stand now.
