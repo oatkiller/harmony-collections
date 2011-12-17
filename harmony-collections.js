@@ -20,9 +20,6 @@
       return map;
     }
 
-    /**
-     * @type {Map}
-     */
     Map.prototype = Object.create(proto, {
       constructor: __(Map),
 
@@ -151,9 +148,6 @@
       return weakmap;
     }
 
-    /**
-     * @type {WeakMap}
-     */
     WeakMap.prototype = Object.create(proto, {
       constructor: __(WeakMap),
 
@@ -224,9 +218,6 @@
       return set;
     }
 
-    /*
-     * @type {Set}
-     */
     Set.prototype = Object.create(proto, {
       constructor: __(Set),
 
@@ -312,11 +303,11 @@
   }
 
   function IncompatibleError(type){
-    var err = new TypeError();
+    var err = new TypeError;
     err.message = type.name+' function called on an incompatible object.';
     var stack = err.stack.split('\n');
     stack.splice(1, 3);
-    err.stack = stack.join('\n')
+    err.stack = stack.join('\n');
     throw err;
   }
 
@@ -327,12 +318,12 @@
    * @param  {String[]} functions Names of expected prototype properties
    * @return {Boolean}
    */
-  function deepCheck(name, functions){
-    if (typeof window === 'undefined') return true;
+  function matches(name, props){
     if (name in global && global[name].name === name && global[name].prototype) {
-      return !functions.every(function(fn){ return fn in global[name].prototype })
+      return props.every(function(prop){
+        return prop in global[name].prototype;
+      });
     }
-    return true;
   }
 
   /**
@@ -351,22 +342,22 @@
   /**
    * Add Map, WeakMap, and Set to the global object if a native version isn't found.
    */
-  function attach(){
-    if (deepCheck('Map', ['get', 'set', 'has', 'delete'])) {
+  function attachIfMissing(){
+    if (!matches('Map', ['get', 'set', 'has', 'delete'])) {
       global.Map = Map;
     }
-    if (deepCheck('WeakMap', ['get', 'set', 'has', 'delete'])) {
+    if (!matches('WeakMap', ['get', 'set', 'has', 'delete'])) {
       global.WeakMap = WeakMap;
     }
-    if (deepCheck('Set', ['add', 'has', 'delete'])) {
+    if (!matches('Set', ['add', 'has', 'delete'])) {
       global.Set = Set;
     }
   }
 
-  exports.attach = attach;
+  exports.attachIfMissing = attachIfMissing;
 
   if (typeof window !== 'undefined') {
-    attach();
+    attachIfMissing();
   }
 
 })(typeof exports !== 'undefined' ? exports : {},

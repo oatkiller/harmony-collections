@@ -9,7 +9,7 @@ WeakMap won't give the same garbage collector magic as the native one but it can
 
 # Shim Usage
 
-The function `attach` is exported along with Map, WeakMap, and Set which will inspect the global object for the existence of Map, WeakMap, and Set in turn and add ones that are missing. Each one is checked separately because WeakMap's existence predates the other two so there's no guarantee which may already exist. If the global object is the window then `attach` is automatically executed.
+The function `attachIfMissing` is exported along with Map, WeakMap, and Set which will inspect the global object for the existence of Map, WeakMap, and Set in turn and add ones that are missing. Each one is checked separately because WeakMap's existence predates the other two so there's no guarantee which may already exist. If the global object is the window then `attach` is automatically executed.
 
 
 # Collections Usage
@@ -40,7 +40,7 @@ WeakMaps require the use of objects as keys; primitives are not valid keys. Keys
 
 WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
 
-*All* non-primitives are valid keys, including WeakMaps themselves.
+*All non-primitives* are valid keys, including WeakMaps themselves.
 
 
 # Map
@@ -56,6 +56,7 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
 
 *All possible values* are valid keys, including undefined, null, and NaN.
+
 
 # Set
 

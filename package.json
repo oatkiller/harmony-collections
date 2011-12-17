@@ -2,11 +2,11 @@
   "author": "Brandon Benvie <brandon@bbenvie.com> (http://bbenvie.com)",
   "name": "harmony-collections",
   "description": "Shim to provide Map, Set, and WeakMap if they're not available",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/Benvie/ES6-Harmony-Collections-Shim",
   "repository": {
     "type": "git",
-    "url": "git://github.com/Benvie/ES6-Harmony-Collections-Shim.git"
+    "url": "https://github.com/Benvie/ES6-Harmony-Collections-Shim"
   },
   "main": "harmony-collections.js",
   "engines": {
