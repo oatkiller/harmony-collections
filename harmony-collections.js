@@ -136,7 +136,7 @@
 
   var WeakMap = exports.WeakMap = (function(){
 
-    var weakmaps = Map()
+    var weakmaps = new Map
       , last = {};
 
     /**
@@ -206,7 +206,7 @@
   })();
 
   var Set = exports.Set = (function(){
-    var sets = Map()
+    var sets = new Map
       , last = {};
 
     /**
@@ -314,8 +314,8 @@
   /**
    * Check a function's name and names of proprties on its prototype. Map and Set are common
    * names so checking that they exist isn't adequate. This is ignored if not in browser/using exports.
-   * @param  {String} name        Name of the constructor
-   * @param  {String[]} functions Names of expected prototype properties
+   * @param  {String}   name       Name of the constructor
+   * @param  {String[]} functions  Names of expected prototype properties
    * @return {Boolean}
    */
   function matches(name, props){
@@ -328,17 +328,13 @@
 
   /**
    * Strict equals with a couple differences: egal(-0, 0) is false, egal(NaN, NaN) is true
-   * @param  {Any} x
-   * @param  {Any} y
+   * @param  {Any} a
+   * @param  {Any} b
    * @return {Boolean}
    */
-  function egal(x, y){
-    if (x === y) {
-      return x !== 0 || 1 / x === 1 / y;
-    }
-    return x !== x && y !== y;
+  function egal(a, b){
+    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
   }
-
   /**
    * Add Map, WeakMap, and Set to the global object if a native version isn't found.
    */
