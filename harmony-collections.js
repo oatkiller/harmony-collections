@@ -4,10 +4,10 @@
 
   var Map = exports.Map = (function(){
 
-    var maps = []
-      , keysets = []
-      , valsets = []
-      , last = {};
+    var keysets = [];
+    var valsets = [];
+    var maps = [];
+    var last = {};
 
     /**
      * Collection allowing any value to be a key: objects, primitives, undefined.
@@ -136,8 +136,8 @@
 
   var WeakMap = exports.WeakMap = (function(){
 
-    var weakmaps = new Map
-      , last = {};
+    var weakmaps = new Map;
+    var last = {};
 
     /**
      * Collection using objects with unique identities as keys that disallows enumeration.
@@ -206,8 +206,9 @@
   })();
 
   var Set = exports.Set = (function(){
-    var sets = new Map
-      , last = {};
+
+    var sets = new Map;
+    var last = {};
 
     /**
      * Collection of values that enforces uniqueness.
