@@ -1,0 +1,121 @@
+info it worked if it ends with ok
+verbose cli [ 'nodes.exe',
+verbose cli   'C:\\Program Files (x86)\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+verbose cli   'publish' ]
+info using npm@1.1.0-beta-4
+info using node@v0.7.0-pre
+verbose config file C:\Users\Brandon\.npmrc
+verbose config file C:\Program Files (x86)\nodejs\etc\npmrc
+verbose config file C:\Program Files (x86)\nodejs\node_modules\npm\npmrc
+verbose publish [ '.' ]
+verbose caching C:\Program Files (x86)\nodejs\repl\node_modules\harmony-collections\package.json
+verbose loadDefaults harmony-collections@0.1.5
+info prepublish harmony-collections@0.1.5
+verbose cache add [ '.', null ]
+silly cache add: name, spec, args [ , '.', [ '.', null ] ]
+verbose parsed url { pathname: '.', path: '.', href: '.' }
+verbose caching package.json
+verbose loadDefaults harmony-collections@0.1.5
+verbose pack C:\Program Files (x86)\nodejs\repl\node_modules\harmony-collections
+verbose pack C:\Program Files (x86)\nodejs\repl\node_modules\harmony-collections C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\tmp.tgz
+silly makeList C:\Program Files (x86)\nodejs\repl\node_modules\harmony-collections
+silly dir, dirLen [ 'C:\\Program Files (x86)\\nodejs\\repl\\node_modules\\harmony-collections',
+silly dir, dirLen   68 ]
+verbose tarball C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\tmp.tgz
+verbose parent C:\Program Files (x86)\nodejs\repl\node_modules\harmony-collections
+verbose mkdir (expected) error ENOENT, no such file or directory 'C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\___package.npm'
+verbose mkdir done: C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\___package.npm 755
+verbose unpack_ uid, gid [ ,  ]
+verbose unpackTarget C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package
+silly gunzTarPerm modes [ '755', '644' ]
+silly afterUntar undefined
+verbose gunzed C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\___package.npm\harmony-collections
+verbose rm'ed C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package
+verbose renamed [ 'C:\\windows\\TEMP\\npm-1324886425610\\1324886425610-0.49454534030519426\\___package.npm\\harmony-collections',
+verbose renamed   'C:\\windows\\TEMP\\npm-1324886425610\\1324886425610-0.49454534030519426\\package' ]
+verbose caching C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package\package.json
+verbose loadDefaults harmony-collections@0.1.5
+verbose tarball contents [ 'package', 'tmp.tgz' ]
+verbose from cache C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package\package.json
+verbose pack C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package
+verbose pack C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package.tgz
+silly makeList C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package
+silly dir, dirLen [ 'C:\\windows\\TEMP\\npm-1324886425610\\1324886425610-0.49454534030519426\\package',
+silly dir, dirLen   76 ]
+verbose tarball C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package.tgz
+verbose parent C:\windows\TEMP\npm-1324886425610\1324886425610-0.49454534030519426\package
+verbose mkdir (expected) error ENOENT, no such file or directory 'C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\___package.npm'
+verbose mkdir done: C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\___package.npm 755
+verbose unpack_ uid, gid [ ,  ]
+verbose unpackTarget C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package
+silly gunzTarPerm modes [ '755', '644' ]
+silly afterUntar undefined
+verbose gunzed C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\___package.npm\package
+verbose rm'ed C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package
+verbose renamed [ 'C:\\Users\\Brandon\\AppData\\Roaming\\npm-cache\\harmony-collections\\0.1.5\\___package.npm\\package',
+verbose renamed   'C:\\Users\\Brandon\\AppData\\Roaming\\npm-cache\\harmony-collections\\0.1.5\\package' ]
+verbose caching C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package\package.json
+verbose loadDefaults harmony-collections@0.1.5
+silly updated sha bytes 5061
+info shasum 544c7510ef885e18efd0df86ede8b603c22e3841
+info shasum C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package.tgz
+verbose from cache C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package\package.json
+verbose chmod C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package.tgz 644
+silly skipping chown for windows C:\Users\Brandon\AppData\Roaming\npm-cache\harmony-collections\0.1.5\package.tgz
+silly publish { author: 
+silly publish   { name: 'Brandon Benvie',
+silly publish     email: 'brandon@bbenvie.com',
+silly publish     url: 'http://bbenvie.com' },
+silly publish   name: 'harmony-collections',
+silly publish   description: "Shim to provide Map, Set, and WeakMap if they're not available",
+silly publish   keywords: 
+silly publish   [ 'harmony',
+silly publish     'collection',
+silly publish     'weakmap',
+silly publish     'map',
+silly publish     'set',
+silly publish     'ecmascript',
+silly publish     'shim' ],
+silly publish   version: '0.1.5',
+silly publish   homepage: 'https://github.com/Benvie/ES6-Harmony-Collections-Shim',
+silly publish   repository: 
+silly publish   { type: 'git',
+silly publish     url: 'git://github.com/Benvie/ES6-Harmony-Collections-Shim.git' },
+silly publish   main: 'harmony-collections.js',
+silly publish   engines: { node: '0.6' },
+silly publish   dependencies: {},
+silly publish   devDependencies: {},
+silly publish   _npmUser: { name: 'benvie', email: 'brandon@bbenvie.com' },
+silly publish   _id: 'harmony-collections@0.1.5',
+silly publish   _engineSupported: false,
+silly publish   _npmVersion: '1.1.0-beta-4',
+silly publish   _nodeVersion: 'v0.7.0-pre',
+silly publish   _defaultsLoaded: true,
+silly publish   dist: 
+silly publish   { shasum: '544c7510ef885e18efd0df86ede8b603c22e3841',
+silly publish     tarball: 'http://registry.npmjs.org/harmony-collections/-/harmony-collections-0.1.5.tgz' } }
+verbose raw, before any munging harmony-collections
+verbose url resolving [ 'https://registry.npmjs.org/', './harmony-collections' ]
+verbose url resolved https://registry.npmjs.org/harmony-collections
+http PUT https://registry.npmjs.org/harmony-collections
+http 409 https://registry.npmjs.org/harmony-collections
+verbose raw, before any munging harmony-collections
+verbose url resolving [ 'https://registry.npmjs.org/', './harmony-collections' ]
+verbose url resolved https://registry.npmjs.org/harmony-collections
+http GET https://registry.npmjs.org/harmony-collections
+http 200 https://registry.npmjs.org/harmony-collections
+info Already published harmony-collections@0.1.5
+verbose uploading bin dists []
+ERR! publish fail Cannot publish over existing version.
+ERR! publish fail Bump the 'version' field, set the --force flag, or
+ERR! publish fail     npm unpublish 'harmony-collections@0.1.5'
+ERR! publish fail and try again
+ERR! 
+ERR! System Windows_NT 6.1.7601
+ERR! command "nodes.exe" "C:\\Program Files (x86)\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "publish"
+ERR! cwd C:\Program Files (x86)\nodejs\repl\node_modules\harmony-collections
+ERR! node -v v0.7.0-pre
+ERR! npm -v 1.1.0-beta-4
+ERR! code EPUBLISHCONFLICT
+ERR! message publish fail
+verbose exit [ 1, true ]

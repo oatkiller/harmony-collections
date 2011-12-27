@@ -106,9 +106,7 @@
         if (key !== undefined) {
           var keyi = (mapi === last.mapi && egal(key, last.key)) ? last.keyi : find(keysets[mapi], key);
           last.key = key;
-          last.keyi = ~keyi ? keyi : null;
-        } else {
-          last.keyi = last.key = null
+          if (~keyi) last.keyi = keyi;
         }
         last.map = map;
         last.mapi = mapi;
