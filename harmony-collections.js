@@ -343,7 +343,11 @@
     if (!matches('Map', ['get', 'set', 'has', 'delete'])) {
       global.Map = Map;
     }
-    if (!matches('WeakMap', ['get', 'set', 'has', 'delete'])) {
+    if (!matches('WeakMap', ['get', 'set', 'has', 'delete']) ||
+      // also patch over the WeakMap implementation in node 0.6.x which suffers from
+      // a bug that makes WeakMaps nearly useless for any practical purpose anyway
+        (process && process.versions && process.versions.v8 &&
+         parseFloat(process.versions.v8) < 3.7)) {
       global.WeakMap = WeakMap;
     }
     if (!matches('Set', ['add', 'has', 'delete'])) {
