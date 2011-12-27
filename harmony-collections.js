@@ -112,11 +112,6 @@
         }
         last.map = map;
         last.mapi = mapi;
-        console.log({
-          keys: keysets[mapi],
-          vals: valsets[mapi],
-          index: keyi
-        })
         return {
           keys: keysets[mapi],
           vals: valsets[mapi],

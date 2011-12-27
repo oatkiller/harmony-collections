@@ -3,7 +3,7 @@
   "name": "harmony-collections",
   "description": "Shim to provide Map, Set, and WeakMap if they're not available",
   "keywords": ["harmony", "collection", "weakmap", "map", "set", "ecmascript", "shim"],
-  "version": "0.1.7",
+  "version": "0.1.8",
   "homepage": "https://github.com/Benvie/ES6-Harmony-Collections-Shim",
   "repository": {
     "type": "git",
