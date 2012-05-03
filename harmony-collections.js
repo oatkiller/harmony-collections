@@ -4,21 +4,23 @@
   // Modified and expanded to [Map, Hash, Set] by Benvie @ https://github.com/Benvie
   "use strict";
 
-  var origGOPN = Object.getOwnPropertyNames;
-  var hasOwn = Object.prototype.hasOwnProperty;
-
   function isObject(o){
     return Object(o) === o;
   }
 
-  var defineMethods = function(){
+  var hasOwn = Object.prototype.hasOwnProperty;
+
+  var glue = function(){
+    var GOPN = Object.getOwnPropertyNames;
     var desc = {
       configurable: true,
       writable: true,
       enumerable: false
     };
+    var code = Object.toString().split('Object');
+    var toString = new Function('return function toString(){ return "'+code[0]+'"+this.name+"'+code[1]+'" }')();
 
-    return function(o,v){
+    function defineMethods(o,v){
       if (Array.isArray(v)) {
         v.forEach(function(v){
           desc.value = v;
@@ -31,86 +33,116 @@
       desc.value = null;
       return o;
     }
-  }();
-
-  var fakeNative = function(){
-    var code = Object.toString().split('Object');
-    var toString = new Function('return function toString(){ return "'+code[0]+'"+this.name+"'+code[1]+'" }')();
 
     function fakeNative(fn){
       return defineMethods(fn, toString);
     }
 
     fakeNative(toString);
-    return fakeNative;
+
+    defineMethods(Object, function getOwnPropertyNames(o){
+      var props = GOPN(o);
+      if (hasOwn.call(o, 'valueOf') && o.valueOf.ns) {
+        props.splice(props.indexOf('valueOf'), 1);
+      }
+      return props;
+    });
+
+    fakeNative(Object.getOwnPropertyNames);
+
+    return function(methods){
+      var Ctor = methods.shift();
+      defineMethods(Ctor.prototype, methods);
+      methods.forEach(fakeNative);
+      return fakeNative(Ctor);
+    };
   }();
 
-  function glue(methods){
-    var Ctor = methods.shift();
-    defineMethods(Ctor.prototype, methods);
-    methods.forEach(fakeNative);
-    return fakeNative(Ctor);
+  function Pair(key, value){
+    this.key = key;
+    this.value = value;
   }
 
-
-
-
-  defineMethods(Object, function getOwnPropertyNames(o){
-    var props = origGOPN(o);
-    if (hasOwn.call(o, 'valueOf') && o.valueOf.ns) {
-      props.splice(props.indexOf('valueOf'), 1);
-    }
-    return props;
-  });
-
-  fakeNative(Object.getOwnPropertyNames);
-
-  /* WeakMap, Map, and Hash all implement the following API with one difference:
-    * WeakMap - Object keys only, provides for better garbage collection
-    * Map - Allows anything to be a key
-    * Hash - Allows only primitives to be keys
-
   /**
-   * @method set
-   * @description Add or update a pair in the map. Enforces uniqueness by overwriting.
-   * @param  {Any} key
-   * @param  {Any} val
-   * @return {Any} returns value passed in
+   * @classes      [ WeakMap, Map, Hash, Set ]
+   **
+   * @method       <has>
+   * @description  Check if key is in the collection
+   * @param        {Any} key
+   * @return       {Boolean}
+   **
+   * @method       <delete>
+   * @description  Remove key and matching value if found
+   * @param        {Any} key
+   * @return       {Boolean} true if item was in collection
    */
 
   /**
-   * @method get
-   * @description Retrieve the value that matches key
-   * @param  {Any} key
-   * @return {Any}
+   * @classes      [ WeakMap, Map, Hash ]
+   **
+   * @method       <set>
+   * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
+   * @param        {Any} key
+   * @param        {Any} val
+   * @return       {Any} returns value passed in
+   **
+   * @method       <get>
+   * @description  Retrieve the value in the collection that matches key
+   * @param        {Any} key
+   * @return       {Any}
    */
 
   /**
-   * @method has
-   * @description Check if key is in Map
-   * @param  {Any} key
-   * @return {Boolean}
+   * @classes      [ Set ]
+   * @method       <add>
+   * @description  Insert value if not found, enforcing uniqueness.
+   * @param        {Any} val
    */
 
   /**
-   * @method delete
-   * @description Remove key and matching value if found
-   * @param  {Any} key
-   * @return {Boolean} true if item was in collection
+   * @classes      [ Map, Hash, Set ]
+   **
+   * @method       <values>
+   * @description  Returns an array containing the values
+   * @return       {Array}
+   **
+   * @method       <iterate>
+   * @description  Loop through the collection raising callback for each
+   * @param        {Function} callback  `callback(value, key|index)`
+   * @param        {Object}   context    The `this` binding for callbacks, default null
    */
 
   /**
-   * TODO:
-   *  keys
-   *  values
-   *  iterate
-   */
+   * @classes      [ Map, Hash ]
+   **
+   * @method       <keys>
+   * @description  Returns an array containing the keys
+   * @return       {Array}
+   **
+   * @method       <toArray>
+   * @description  Returns an array containing key:value pairs
+   * @return       {Pair[]}
+   **
+   **/
+
+  /**
+   * @classes      [ Hash ]
+   **
+   * @method       <toObject>
+   * @description  Returns an plain object with the keys and values
+   * @return       {Object}
+   **
+   **/
+
+
+
 
   /**
    * @class WeakMap
    * @description Collection using objects with unique identities as keys that disallows enumeration and allows for better garbage collection.
    */
-  var WeakMap = function(weakmaps){
+  //var WeakMap = exports.WeakMap = 'WeakMap' in global ? global.WeakMap : function(weakmaps){
+  var WeakMap = exports.WeakMap = function(weakmaps){
     return glue([
       function WeakMap(){
         if (!(this instanceof WeakMap)) return new WeakMap;
@@ -142,7 +174,7 @@
    * @class Hash
    * @description Collection that only allows primitives to be keys.
    */
-  var Hash = function(hashes){
+  var Hash = exports.Hash = 'Hash' in global ? global.Hash : function(hashes){
     return glue([
       function Hash(){
         if (!(this instanceof Hash)) return new Hash;
@@ -166,123 +198,160 @@
         } else {
           return false;
         }
+      },
+      function keys(){
+        return Object.keys(hashes.get(this));
+      },
+      function values(){
+        var hash = hashes.get(this);
+        return Object.keys(hash).map(function(key){
+          return hash[key];
+        });
+      },
+      function iterate(callback, context){
+        var hash = hashes.get(this);
+        context = isObject(context) ? context : global;
+        for (var k in hash) {
+          callback.call(context, hash[k], k);
+        }
+      },
+      function toArray(){
+        var out = [];
+        this.iterate(function(value, key){
+          out.push(new Pair(key, value));
+        });
+        return out;
+      },
+      function toObject(){
+        var out = {};
+        this.iterate(function(value, key){
+          out[key] = value;
+        });
+        return out;
       }
-      /**
-       * Retrieve all keys
-       * @return {Array}
-       */
-      //function keys(){},
-      /**
-       * Retrieve all values
-       * @return {Array}
-       */
-      //function values(){},
-      /**
-       * Loop through the collection raising callback for each
-       * @param  {Function} callback  `callback(value, index)`
-       * @param  {Object}   context    The `this` binding for callbacks, default null
-       */
-      //function iterate(callback, context){}
     ]);
-  }(new WeakMap)
+  }(new WeakMap);
 
 
   /**
    * @class Map
    * @description Collection that allows any kind of value to be a key.
    */
-  var Map = function(maps){
+  var Map = exports.Map = 'Map' in global ? global.Map : function(maps){
+    var MapArray = glue([
+      function MapArray(){
+        this.tables = [new Hash, new WeakMap];
+        this.keys = [];
+        this.values = [];
+      },
+      function get(key){
+        return this.keys[this.tables[+isObject(key)].get(key)];
+      },
+      function set(key, value){
+        var table = this.tables[+isObject(key)];
+        var index = table.get(key);
+        if (index === undefined) {
+          table.set(key, this.keys.length);
+          this.keys.push(key);
+          this.values.push(value);
+        } else {
+          this.keys[index] = key;
+          this.values[index] = value;
+        }
+        return value;
+      },
+      function has(key){
+        return this.tables[+isObject(key)].has(key);
+      },
+      function delet\u0065(key){
+        var index = this.tables[+isObject(key)].get(key);
+        if (index === undefined) {
+          return false;
+        } else {
+          this.tables[+isObject(key)].delete(key);
+          this.keys.splice(index, 1);
+          this.values.splice(index, 1);
+          return true;
+        }
+      }
+    ]);
+
     return glue([
       function Map(){
         if (!(this instanceof Map)) return new Map;
-        maps.set(this, [new Hash, new WeakMap]);
+        maps.set(this, new MapArray);
       },
       function get(key){
-        return maps.get(this)[isObject(key)].get(key);
+        return maps.get(this).get(key);
       },
       function set(key, value){
-        return maps.get(this)[isObject(key)].set(key, value);
+        return maps.get(this).set(key, value);
       },
       function has(key){
-        return maps.get(this)[isObject(key)].has(key);
+        return maps.get(this).has(key);
       },
       function delet\u0065(key){
-        return maps.get(this)[isObject(key)].delete(key);
+        return maps.get(this).delete(key);
+      },
+      function keys(){
+        return maps.get(this).keys.slice();
+      },
+      function values(){
+        return maps.get(this).values.slice();
+      },
+      function iterate(callback, context){
+        var map = maps.get(this);
+        var keys = map.keys;
+        var values = map.values;
+        context = isObject(context) ? context : global;
+
+        for (var i=0, len=keys.length; i < len; i++) {
+          callback.call(context, values[i], keys[i]);
+        }
+      },
+      function toArray(){
+        var out = [];
+        this.iterate(function(value, key){
+          out.push(new Pair(key, value));
+        });
+        return out;
       }
-      /**
-       * Retrieve all keys
-       * @return {Array}
-       */
-      //function keys(){},
-      /**
-       * Retrieve all values
-       * @return {Array}
-       */
-      //function values(){},
-      /**
-       * Loop through the collection raising callback for each
-       * @param  {Function} callback  `callback(value, index)`
-       * @param  {Object}   context    The `this` binding for callbacks, default null
-       */
-      //function iterate(callback, context){}
     ]);
   }(new WeakMap);
 
 
   /**
-   * @class Set
-   * @description Collection of values that enforces uniqueness.
-   */
-  var Set = function(sets){
+   * @class        |Set|
+   * @description  Collection of values that enforces uniqueness.
+   **/
+  var Set = exports.Set = 'Set' in global ? global.Set : function(sets){
     return glue([
-
       function Set(){
         if (!(this instanceof Set)) return new Set;
         sets.set(this, new Map);
       },
 
-      /**
-       * Insert value if not found, enforcing uniqueness.
-       * @param  {Any} val
-       */
       function add(key){
         return sets.get(this).set(key, true);
       },
 
-      /**
-       * Check if value is in Set
-       * @param  {Any}      val
-       * @return {Boolean}
-       */
       function has(key){
         return sets.get(this).has(key);
       },
 
-      /**
-       * Remove value if found
-       * @param  {Any}      val
-       * @return {Boolean}  true if item was in collection
-       */
       function delet\u0065(key){
         return sets.get(this).delete(key);
+      },
+
+      function values(callback, context){
+        return sets.get(this).keys();
+      },
+
+      function iterate(callback, context){
+        this.values().forEach(callback, isObject(context) ? context : global);
       }
-      /**
-       * @return {Array}
-       */
-      //function values(callback, context){},
-      /**
-       * Loop through the collection raising callback for each
-       * @param  {Function} callback  `callback(value, index)`
-       * @param  {Object}   context    The `this` binding for callbacks, default null
-       */
-      //function iterate(callback, context){}
     ]);
   }(new WeakMap);
-
-  'Hash' in exports || (exports.Hash = Hash);
-  'Map' in exports || (exports.Map = Map);
-  'Set' in exports || (exports.Set = Set);
-  'WeakMap' in exports || (exports.WeakMap = WeakMap);
 }(function(){
   // keeping these out of the main scope just to be sure there's no wayward references through sheer magic
   "use strict";
