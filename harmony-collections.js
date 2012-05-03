@@ -1,4 +1,4 @@
-!function(exports, global){
+!function(Name, exports, global){
   // Original by Gozala @ https://gist.github.com/1269991
   // Updated by Raynos @ https://gist.github.com/1638059
   // Modified and expanded to [Map, Hash, Set] by Benvie @ https://github.com/Benvie
@@ -16,7 +16,7 @@
       configurable: true,
       writable: true,
       enumerable: false
-    }
+    };
 
     return function(o,v){
       if (Array.isArray(v)) {
@@ -60,26 +60,6 @@
     defineMethods(Ctor.prototype, methods);
     methods.forEach(fakeNative);
     return fakeNative(Ctor);
-  }
-
-  function namespace(obj, key) {
-    var store = Object.create(null);
-    var origVO = obj.valueOf || Object.prototype.valueOf;
-
-    defineMethods(obj, function valueOf(value){
-      return value !== key ? origVO.apply(this, arguments) : store;
-    });
-
-    obj.valueOf.ns = true;
-    return store;
-  }
-
-  function Name(){
-    var key = this;
-    return function(obj){
-      var store = obj.valueOf(key);
-      return store !== obj ? store : namespace(obj, key);
-    }
   }
 
   /* WeakMap, Map, and Hash all implement the following API with one difference:
@@ -304,4 +284,32 @@
   'Map' in exports || (exports.Map = Map);
   'Set' in exports || (exports.Set = Set);
   'WeakMap' in exports || (exports.WeakMap = WeakMap);
-}(typeof module === 'undefined' ? this : module.exports, new Function('return this')());
+}(function(){
+  // keeping these out of the main scope just to be sure there's no wayward references through sheer magic
+    function namespace(obj, key) {
+      var store = Object.create(null);
+      var origVO = obj.valueOf || Object.prototype.valueOf;
+
+      Object.defineProperty(obj, 'valueOf', {
+        configurable: true,
+        writable: true,
+        value: function valueOf(value){
+          return value !== key ? origVO.apply(this, arguments) : store;
+        }
+      });
+
+      obj.valueOf.ns = true;
+      return store;
+    }
+
+    return function Name(){
+      var key = this;
+      return function(obj){
+        var store = obj.valueOf(key);
+        return store !== obj ? store : namespace(obj, key);
+      }
+    }
+  }(),
+  typeof module === 'undefined' ? this : module.exports,
+  new Function('return this')()
+);
