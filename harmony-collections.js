@@ -185,7 +185,7 @@
         } else {
           return false;
         }
-      },
+      }
       /**
        * Retrieve all keys
        * @return {Array}
@@ -228,7 +228,7 @@
       },
       function delet\u0065(key){
         return maps.get(this)[isObject(key)].delete(key);
-      },
+      }
       /**
        * Retrieve all keys
        * @return {Array}
@@ -286,9 +286,8 @@
        */
       function delet\u0065(key){
         return sets.get(this).delete(key);
-      },
+      }
       /**
-       * Retrieve all values
        * @return {Array}
        */
       //function values(callback, context){},
