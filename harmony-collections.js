@@ -45,6 +45,16 @@
     return fakeNative;
   }();
 
+  function glue(methods){
+    var Ctor = methods.shift();
+    defineMethods(Ctor.prototype, methods);
+    methods.forEach(fakeNative);
+    return fakeNative(Ctor);
+  }
+
+
+
+
   defineMethods(Object, function getOwnPropertyNames(o){
     var props = origGOPN(o);
     if (hasOwn.call(o, 'valueOf') && o.valueOf.ns) {
@@ -54,13 +64,6 @@
   });
 
   fakeNative(Object.getOwnPropertyNames);
-
-  function glue(methods){
-    var Ctor = methods.shift();
-    defineMethods(Ctor.prototype, methods);
-    methods.forEach(fakeNative);
-    return fakeNative(Ctor);
-  }
 
   /* WeakMap, Map, and Hash all implement the following API with one difference:
     * WeakMap - Object keys only, provides for better garbage collection
@@ -107,8 +110,7 @@
    * @class WeakMap
    * @description Collection using objects with unique identities as keys that disallows enumeration and allows for better garbage collection.
    */
-  var WeakMap = function(){
-    var weakmaps = new Name;
+  var WeakMap = function(weakmaps){
     return glue([
       function WeakMap(){
         if (!(this instanceof WeakMap)) return new WeakMap;
@@ -133,15 +135,14 @@
         }
       }
     ]);
-  }();
+  }(new Name);
 
 
   /**
    * @class Hash
    * @description Collection that only allows primitives to be keys.
    */
-  var Hash = function(){
-    var hashes = new WeakMap;
+  var Hash = function(hashes){
     return glue([
       function Hash(){
         if (!(this instanceof Hash)) return new Hash;
@@ -183,19 +184,18 @@
        */
       //function iterate(callback, context){}
     ]);
-  }()
+  }(new WeakMap)
 
 
   /**
    * @class Map
    * @description Collection that allows any kind of value to be a key.
    */
-  var Map = function(){
-    var maps = new WeakMap;
+  var Map = function(maps){
     return glue([
       function Map(){
         if (!(this instanceof Map)) return new Map;
-        maps.set(this, [new Hash, new Name]);
+        maps.set(this, [new Hash, new WeakMap]);
       },
       function get(key){
         return maps.get(this)[isObject(key)].get(key);
@@ -226,15 +226,14 @@
        */
       //function iterate(callback, context){}
     ]);
-  }();
+  }(new WeakMap);
 
 
   /**
    * @class Set
    * @description Collection of values that enforces uniqueness.
    */
-  var Set = function(){
-    var sets = new WeakMap;
+  var Set = function(sets){
     return glue([
 
       function Set(){
@@ -278,7 +277,7 @@
        */
       //function iterate(callback, context){}
     ]);
-  }();
+  }(new WeakMap);
 
   'Hash' in exports || (exports.Hash = Hash);
   'Map' in exports || (exports.Map = Map);
@@ -286,30 +285,31 @@
   'WeakMap' in exports || (exports.WeakMap = WeakMap);
 }(function(){
   // keeping these out of the main scope just to be sure there's no wayward references through sheer magic
-    function namespace(obj, key) {
-      var store = Object.create(null);
-      var origVO = obj.valueOf || Object.prototype.valueOf;
+  "use strict";
+  function namespace(obj, key) {
+    var store = Object.create(null);
+    var origVO = obj.valueOf || Object.prototype.valueOf;
 
-      Object.defineProperty(obj, 'valueOf', {
-        configurable: true,
-        writable: true,
-        value: function valueOf(value){
-          return value !== key ? origVO.apply(this, arguments) : store;
-        }
-      });
-
-      obj.valueOf.ns = true;
-      return store;
-    }
-
-    return function Name(){
-      var key = this;
-      return function(obj){
-        var store = obj.valueOf(key);
-        return store !== obj ? store : namespace(obj, key);
+    Object.defineProperty(obj, 'valueOf', {
+      configurable: true,
+      writable: true,
+      value: function valueOf(value){
+        return value !== key ? origVO.apply(this, arguments) : store;
       }
+    });
+
+    obj.valueOf.ns = true;
+    return store;
+  }
+
+  return function Name(){
+    var key = this;
+    return function(obj){
+      var store = obj.valueOf(key);
+      return store !== obj ? store : namespace(obj, key);
     }
-  }(),
+  }
+}(),
   typeof module === 'undefined' ? this : module.exports,
   new Function('return this')()
 );
