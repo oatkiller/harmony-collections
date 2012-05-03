@@ -65,13 +65,12 @@
   function namespace(obj, key) {
     var store = Object.create(null);
     var origVO = obj.valueOf || Object.prototype.valueOf;
-    var hasVO = hasOwn.call(obj, 'valueOf');
 
     defineMethods(obj, function valueOf(value){
       return value !== key ? origVO.apply(this, arguments) : store;
     });
 
-    obj.valueOf.ns = hasVO;
+    obj.valueOf.ns = true;
     return store;
   }
 
@@ -114,7 +113,7 @@
    * @method delete
    * @description Remove key and matching value if found
    * @param  {Any} key
-   * @return {Boolean} true item was in collection
+   * @return {Boolean} true if item was in collection
    */
 
   /**
@@ -158,7 +157,7 @@
 
 
   /**
-   * @class Map
+   * @class Hash
    * @description Collection that only allows primitives to be keys.
    */
   var Hash = function(){
@@ -283,7 +282,7 @@
       /**
        * Remove value if found
        * @param  {Any}      val
-       * @return {Boolean}  Always true
+       * @return {Boolean}  true if item was in collection
        */
       function delet\u0065(key){
         return sets.get(this).delete(key);
