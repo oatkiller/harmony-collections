@@ -48,7 +48,8 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __delete__ `map.delete(key)`. Removes value from the Map if found. Returns true.
 * __keys__ `map.keys()`. Returns array of contained keys.
 * __values__ `map.values()`. Return array of contained values.
-* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
+* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || global, value, key)`.
+* __toArray__ `map.toArray()`. Return array of Pair objects of the form `{ key: KEY, value: VALUE }`.
 
 __All possible values__ are valid keys, including undefined, null, and NaN.
 
@@ -57,13 +58,15 @@ __All possible values__ are valid keys, including undefined, null, and NaN.
 
 As an added bonus, Hash is also exported. This has the same API as a Map except it only accepts primitive keys.
 
-* __set__ `map.set(key, value)`. Key is any value including objects. Primitives are valid keys but uniqueness is matched by their value since primitives don't have identity. Objects are matched by identity. Returns the value passed in.
-* __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
-* __has__ `map.has(key)`. Returns boolean.
-* __delete__ `map.delete(key)`. Removes value from the Map if found. Returns true.
-* __keys__ `map.keys()`. Returns array of contained keys.
-* __values__ `map.values()`. Return array of contained values.
-* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
+* __set__ `hash.set(key, value)`. Key is any value including objects. Primitives are valid keys but uniqueness is matched by their value since primitives don't have identity. Objects are matched by identity. Returns the value passed in.
+* __get__ `hash.get(key)`. Returns the value that key corresponds to or undefined.
+* __has__ `hash.has(key)`. Returns boolean.
+* __delete__ `hash.delete(key)`. Removes value from the Map if found. Returns true.
+* __keys__ `hash.keys()`. Returns array of contained keys.
+* __values__ `hash.values()`. Return array of contained values.
+* __iterate__ `hash.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || global, value, key)`.
+* __toArray__ `hash.values()`. Return array of Pair objects of the form `{ key: KEY, value: VALUE }`.
+* __toObject__ `hash.toArray()`. Returns a plain object with the keys and values.
 
 __Primitives__ are valid keys, specifically numbers and strings. All input values are coerced to strings so you can give it any value, but they will be converted to string keys.
 
@@ -76,4 +79,4 @@ Sets are similar to arrays but enforce uniqueness of values. Adding the same val
 * __has__ `set.has(value)`. Returns boolean.
 * __delete__ `set.delete(value)`. Removes value from the Set if found. Returns true.
 * __values__ `set.values()`. Return array of contained values.
-* __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || null, value, index)`.
+* __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || global, value, index)`.

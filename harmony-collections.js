@@ -4,12 +4,17 @@
   // Modified and expanded to [Map, Hash, Set] by Benvie @ https://github.com/Benvie
   "use strict";
 
+  function exporter(name, init){
+    if (!(name in global))
+      global[name] = init()
+  }
+
   function isObject(o){
     return Object(o) === o;
   }
 
   var hasOwn = Object.prototype.hasOwnProperty;
-
+  var makeName;
   var glue = function(){
     var GOPN = Object.getOwnPropertyNames;
     var desc = {
@@ -17,34 +22,63 @@
       writable: true,
       enumerable: false
     };
-    var code = Object.toString().split('Object');
-    var toString = new Function('return function toString(){ return "'+code[0]+'"+this.name+"'+code[1]+'" }')();
+    var code = Object.toString().replace(/\n/g,'\\n').split('Object');
+    var toString = new Function("return function toString(){ return '"+code[0]+"'+this.name+'"+code[1]+"' }")();
+    if (!Function.prototype.name) {
+      Object.defineProperty(Function.prototype, 'name', {
+        get: function(){
+          if (this === Function.prototype) return 'Empty';
+          var src = Function.prototype.toString.call(this);
+          src = src.slice(9, src.indexOf('('));
+          Object.defineProperty(this, 'name', { value: src });
+          return src
+        }
+      });
+    }
+
+    function definer(o, v){
+      var vname = v.name;
+      if (vname.slice(-1) === '_')
+        vname = vname.slice(0,-1);
+      desc.value = v;
+      Object.defineProperty(o, vname, desc);
+      return vname;
+    }
 
     function defineMethods(o,v){
       if (Array.isArray(v)) {
         v.forEach(function(v){
-          desc.value = v;
-          Object.defineProperty(o, v.name, desc);
+          definer(o, v);
         });
       } else {
-        desc.value = v;
-        Object.defineProperty(o, v.name, desc);
+        definer(o, v);
       }
       desc.value = null;
       return o;
     }
 
     function fakeNative(fn){
+      /*@cc_on return Object.defineProperty(fn, 'toString', { value: toString }); @*/
       return defineMethods(fn, toString);
     }
 
     fakeNative(toString);
 
+
+    var names = [];
+    makeName = function(){
+      var name = '_'+(Math.random() / 1.1).toString(36).slice(2);
+      names.push(name);
+      return name;
+    }
+
     defineMethods(Object, function getOwnPropertyNames(o){
       var props = GOPN(o);
-      if (hasOwn.call(o, 'valueOf') && o.valueOf.ns) {
-        props.splice(props.indexOf('valueOf'), 1);
-      }
+      names.forEach(function(name){
+        if (hasOwn.call(o, name)) {
+          props.splice(props.indexOf(name), 1);
+        }
+      });
       return props;
     });
 
@@ -52,7 +86,10 @@
 
     return function(methods){
       var Ctor = methods.shift();
+      var brand = '[object '+Ctor.name+']';
+      methods.push(function toString(){ return brand });
       defineMethods(Ctor.prototype, methods);
+      Ctor.prototype.constructor = Ctor;
       methods.forEach(fakeNative);
       return fakeNative(Ctor);
     };
@@ -136,29 +173,30 @@
 
 
 
+  var storage = new Name(makeName());
 
   /**
    * @class WeakMap
    * @description Collection using objects with unique identities as keys that disallows enumeration and allows for better garbage collection.
    */
-  //var WeakMap = exports.WeakMap = 'WeakMap' in global ? global.WeakMap : function(weakmaps){
-  var WeakMap = exports.WeakMap = function(weakmaps){
+
+  exporter('WeakMap', function(){
     return glue([
       function WeakMap(){
         if (!(this instanceof WeakMap)) return new WeakMap;
-        weakmaps(this).lookup = new Name;
+        storage(this).weakmap = new Name(makeName());
       },
       function get(key){
-        return weakmaps(this).lookup(key).value;
+        return storage(this).weakmap(key).value;
       },
       function set(key, value){
-        return weakmaps(this).lookup(key).value = value;
+        return storage(this).weakmap(key).value = value;
       },
       function has(key){
-        return hasOwn.call(weakmaps(this).lookup(key), 'value');
+        return hasOwn.call(storage(this).weakmap(key), 'value');
       },
-      function delet\u0065(key){
-        var store = weakmaps(this).lookup(key);
+      function delete_(key){
+        var store = storage(this).weakmap(key);
         if (hasOwn.call(store, 'value')) {
           delete store.value;
           return true;
@@ -167,30 +205,30 @@
         }
       }
     ]);
-  }(new Name);
+  });
 
 
   /**
    * @class Hash
    * @description Collection that only allows primitives to be keys.
    */
-  var Hash = exports.Hash = 'Hash' in global ? global.Hash : function(hashes){
+  exporter('Hash', function(){
     return glue([
       function Hash(){
         if (!(this instanceof Hash)) return new Hash;
-        hashes.set(this, Object.create(null));
+        storage(this).hash = Object.create(null);
       },
       function get(key){
-        return hashes.get(this)[key];
+        return storage(this).hash[key];
       },
       function set(key, value){
-        return hashes.get(this)[key] = value;
+        return storage(this).hash[key] = value;
       },
       function has(key){
-        return key in hashes.get(this);
+        return key in storage(this).hash;
       },
-      function delet\u0065(key){
-        var hash = hashes.get(this);
+      function delete_(key){
+        var hash = storage(this).hash;
         var has = key in hash;
         if (key in hash) {
           delete hash[key]
@@ -200,16 +238,16 @@
         }
       },
       function keys(){
-        return Object.keys(hashes.get(this));
+        return Object.keys(storage(this).hash);
       },
       function values(){
-        var hash = hashes.get(this);
+        var hash = storage(this).hash;
         return Object.keys(hash).map(function(key){
           return hash[key];
         });
       },
       function iterate(callback, context){
-        var hash = hashes.get(this);
+        var hash = storage(this).hash;
         context = isObject(context) ? context : global;
         for (var k in hash) {
           callback.call(context, hash[k], k);
@@ -230,77 +268,65 @@
         return out;
       }
     ]);
-  }(new WeakMap);
+  });
 
 
   /**
    * @class Map
    * @description Collection that allows any kind of value to be a key.
    */
-  var Map = exports.Map = 'Map' in global ? global.Map : function(maps){
-    var MapArray = glue([
-      function MapArray(){
-        this.tables = [new Hash, new WeakMap];
-        this.keys = [];
-        this.values = [];
+  exporter('Map', function(){
+    return glue([
+      function Map(){
+        if (!(this instanceof Map)) return new Map;
+        storage(this).map = {
+          tables: [new Hash, new WeakMap],
+          keys: [],
+          values: []
+        };
       },
       function get(key){
-        return this.keys[this.tables[+isObject(key)].get(key)];
+        var map = storage(this).map;
+        return map.values[map.tables[+isObject(key)].get(key)];
       },
       function set(key, value){
-        var table = this.tables[+isObject(key)];
+        var map = storage(this).map;
+        var table = map.tables[+isObject(key)];
         var index = table.get(key);
         if (index === undefined) {
-          table.set(key, this.keys.length);
-          this.keys.push(key);
-          this.values.push(value);
+          table.set(key, map.keys.length);
+          map.keys.push(key);
+          map.values.push(value);
         } else {
-          this.keys[index] = key;
-          this.values[index] = value;
+          map.keys[index] = key;
+          map.values[index] = value;
         }
         return value;
       },
       function has(key){
-        return this.tables[+isObject(key)].has(key);
+        return storage(this).map.tables[+isObject(key)].has(key);
       },
-      function delet\u0065(key){
-        var index = this.tables[+isObject(key)].get(key);
+      function delete_(key){
+        var map = storage(this).map;
+        var table = map.tables[+isObject(key)];
+        var index = table.get(key);
         if (index === undefined) {
           return false;
         } else {
-          this.tables[+isObject(key)].delete(key);
-          this.keys.splice(index, 1);
-          this.values.splice(index, 1);
+          table.delete(key);
+          map.keys.splice(index, 1);
+          map.values.splice(index, 1);
           return true;
         }
-      }
-    ]);
-
-    return glue([
-      function Map(){
-        if (!(this instanceof Map)) return new Map;
-        maps.set(this, new MapArray);
-      },
-      function get(key){
-        return maps.get(this).get(key);
-      },
-      function set(key, value){
-        return maps.get(this).set(key, value);
-      },
-      function has(key){
-        return maps.get(this).has(key);
-      },
-      function delet\u0065(key){
-        return maps.get(this).delete(key);
       },
       function keys(){
-        return maps.get(this).keys.slice();
+        return storage(this).map.keys.slice();
       },
       function values(){
-        return maps.get(this).values.slice();
+        return storage(this).map.values.slice();
       },
       function iterate(callback, context){
-        var map = maps.get(this);
+        var map = storage(this).map;
         var keys = map.keys;
         var values = map.values;
         context = isObject(context) ? context : global;
@@ -317,68 +343,58 @@
         return out;
       }
     ]);
-  }(new WeakMap);
-
+  });
 
   /**
    * @class        |Set|
    * @description  Collection of values that enforces uniqueness.
    **/
-  var Set = exports.Set = 'Set' in global ? global.Set : function(sets){
+  exporter('Set', function(){
     return glue([
       function Set(){
         if (!(this instanceof Set)) return new Set;
-        sets.set(this, new Map);
+        storage(this).set = new Map;
       },
-
       function add(key){
-        return sets.get(this).set(key, true);
+        return storage(this).set.set(key, true);
       },
-
       function has(key){
-        return sets.get(this).has(key);
+        return storage(this).set.has(key);
       },
-
-      function delet\u0065(key){
-        return sets.get(this).delete(key);
+      function delete_(key){
+        return storage(this).set.delete(key);
       },
-
       function values(callback, context){
-        return sets.get(this).keys();
+        return storage(this).set.keys();
       },
-
       function iterate(callback, context){
         this.values().forEach(callback, isObject(context) ? context : global);
       }
     ]);
-  }(new WeakMap);
+  });
 }(function(){
   // keeping these out of the main scope just to be sure there's no wayward references through sheer magic
   "use strict";
-  function namespace(obj, key) {
+  var hasOwn = Object.prototype.hasOwnProperty;
+  function namespace(obj, key, name) {
     var store = Object.create(null);
-    var origVO = obj.valueOf || Object.prototype.valueOf;
 
-    Object.defineProperty(obj, 'valueOf', {
-      configurable: true,
-      writable: true,
-      value: function valueOf(value){
+    Object.defineProperty(obj, name, {
+      value: function(value){
         return value !== key ? origVO.apply(this, arguments) : store;
       }
     });
 
-    obj.valueOf.ns = true;
     return store;
   }
 
-  return function Name(){
+  return function Name(name){
     var key = this;
     return function(obj){
-      var store = obj.valueOf(key);
-      return store !== obj ? store : namespace(obj, key);
+      return hasOwn.call(obj, name) ? obj[name](key) : namespace(obj, key, name);
     }
   }
 }(),
   typeof module === 'undefined' ? this : module.exports,
   new Function('return this')()
-);
+)
