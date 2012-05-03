@@ -4,17 +4,12 @@ Provides Map, Set, and WeakMap with the same usage as the new ES6 native version
 
 For WeakMaps this means there's no way to find what's inside it or how many items are contained, and the only way to get a reference to a value is if you have a direct reference to the key object that links to it.
 
-WeakMap won't give the same garbage collector magic as the native one but it can be used with the same code.
-
-
-# Shim Usage
-
-The function `attachIfMissing` is exported along with Map, WeakMap, and Set which will inspect the global object for the existence of Map, WeakMap, and Set in turn and add ones that are missing. Each one is checked separately because WeakMap's existence predates the other two so there's no guarantee which may already exist. If the global object is the window then `attach` is automatically executed.
+WeakMap garbage collection functionality isn't quite to spec. Keys hold references to their values strongly which has the potential cause certain types of usage to disallow garbage collection of values in the group. However, even this is still better than any other gc scheme that can be implemented in JS.
 
 
 # Collections Usage
 
-Maps, WeakMaps, and Sets can each be created using their constructor with or without `new`. Examples:
+Maps, WeakMaps, Hashes, and Sets can each be created using their constructor with or without `new`. Examples:
 
     var aWeakMap = new WeakMap;
     var aMap = Map();
@@ -40,7 +35,7 @@ WeakMaps require the use of objects as keys; primitives are not valid keys. Keys
 
 WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
 
-*All non-primitives* are valid keys, including WeakMaps themselves.
+__All non-primitives__ are valid keys, including WeakMaps themselves.
 
 
 # Map
@@ -55,7 +50,22 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __values__ `map.values()`. Return array of contained values.
 * __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
 
-*All possible values* are valid keys, including undefined, null, and NaN.
+__All possible values__ are valid keys, including undefined, null, and NaN.
+
+
+# Hash
+
+As an added bonus, Hash is also exported. This has the same API as a Map except it only accepts primitive keys.
+
+* __set__ `map.set(key, value)`. Key is any value including objects. Primitives are valid keys but uniqueness is matched by their value since primitives don't have identity. Objects are matched by identity. Returns the value passed in.
+* __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
+* __has__ `map.has(key)`. Returns boolean.
+* __delete__ `map.delete(key)`. Removes value from the Map if found. Returns true.
+* __keys__ `map.keys()`. Returns array of contained keys.
+* __values__ `map.values()`. Return array of contained values.
+* __iterate__ `map.iterate(callback, context)`. Loop through the Map executing callback with the signature `callback.call(context || null, key, value, index)`.
+
+__Primitives__ are valid keys, specifically numbers and strings. All input values are coerced to strings so you can give it any value, but they will be converted to string keys.
 
 
 # Set
@@ -67,8 +77,3 @@ Sets are similar to arrays but enforce uniqueness of values. Adding the same val
 * __delete__ `set.delete(value)`. Removes value from the Set if found. Returns true.
 * __values__ `set.values()`. Return array of contained values.
 * __iterate__ `set.iterate(callback, context)`. Loop through the Set executing callback with the signature `callback.call(context || null, value, index)`.
-
-
-# TODO
-
-* Check up on iteration semantics for ES6 as they stand now.

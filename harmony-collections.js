@@ -1,365 +1,309 @@
-(function(exports, global){
+!function(exports, global){
+  // Original by Gozala @ https://gist.github.com/1269991
+  // Updated by Raynos @ https://gist.github.com/1638059
+  // Modified and expanded to [Map, Hash, Set] by Benvie @ https://github.com/Benvie
   "use strict";
-  var proto = Object.create(Object.prototype, { toString: __(toString) });
 
-  var Map = exports.Map = (function(){
+  var origGOPN = Object.getOwnPropertyNames;
+  var hasOwn = Object.prototype.hasOwnProperty;
 
-    var keysets = [];
-    var valsets = [];
-    var maps = [];
-    var last = {};
+  function isObject(o){
+    return Object(o) === o;
+  }
 
-    /**
-     * Collection allowing any value to be a key: objects, primitives, undefined.
-     */
-    function Map(){
-      var map = Object.create(Map.prototype);
-      maps.push(map);
-      keysets.push([]);
-      valsets.push([]);
-      return map;
+  var defineMethods = function(){
+    var desc = {
+      configurable: true,
+      writable: true,
+      enumerable: false
     }
 
-    Map.prototype = Object.create(proto, {
-      constructor: __(Map),
+    return function(o,v){
+      if (Array.isArray(v)) {
+        v.forEach(function(v){
+          desc.value = v;
+          Object.defineProperty(o, v.name, desc);
+        });
+      } else {
+        desc.value = v;
+        Object.defineProperty(o, v.name, desc);
+      }
+      desc.value = null;
+      return o;
+    }
+  }();
 
-      /**
-       * Add or update a pair in the map. Enforces uniqueness by overwriting.
-       * @param  {Any} key
-       * @param  {Any} val
-       * @return {Any} returns value passed in
-       */
-      set: __(function set(key, val){
-        var map = search(this, key);
-        if (map.index < 0) map.index = map.keys.length;
-        map.keys[map.index] = key;
-        last.keyi = map.index;
-        return map.vals[map.index] = val;
-      }),
+  var fakeNative = function(){
+    var code = Object.toString().split('Object');
+    var toString = new Function('return function toString(){ return "'+code[0]+'"+this.name+"'+code[1]+'" }')();
 
-      /**
-       * Retrieve the value that matches key
-       * @param  {Any} key
-       * @return {Any}
-       */
-      get: __(function get(key){
-        var map = search(this, key);
-        return ~map.index ? map.vals[map.index] : undefined;
-      }),
+    function fakeNative(fn){
+      return defineMethods(fn, toString);
+    }
 
-      /**
-       * Check if key is in Map
-       * @param  {Any} key
-       * @return {Boolean}
-       */
-      has: __(function has(key){
-        return !!~search(this, key).index;
-      }),
+    fakeNative(toString);
+    return fakeNative;
+  }();
 
-      /**
-       * Remove key and matching value if found
-       * @param  {Any} key
-       * @return {Boolean} Always true
-       */
-      delete: __(function del(key){
-        var map = search(this, key);
-        if (!~map.index) return true;
-        map.keys.splice(map.index, 1);
-        map.vals.splice(map.index, 1);
-        last.keyi = null;
-        return true;
-      }),
+  defineMethods(Object, function getOwnPropertyNames(o){
+    var props = origGOPN(o);
+    if (hasOwn.call(o, 'valueOf') && o.valueOf.ns) {
+      props.splice(props.indexOf('valueOf'), 1);
+    }
+    return props;
+  });
 
+  fakeNative(Object.getOwnPropertyNames);
+
+  function glue(methods){
+    var Ctor = methods.shift();
+    defineMethods(Ctor.prototype, methods);
+    methods.forEach(fakeNative);
+    return fakeNative(Ctor);
+  }
+
+  function namespace(obj, key) {
+    var store = Object.create(null);
+    var origVO = obj.valueOf || Object.prototype.valueOf;
+    var hasVO = hasOwn.call(obj, 'valueOf');
+
+    defineMethods(obj, function valueOf(value){
+      return value !== key ? origVO.apply(this, arguments) : store;
+    });
+
+    obj.valueOf.ns = hasVO;
+    return store;
+  }
+
+  function Name(){
+    var key = this;
+    return function(obj){
+      var store = obj.valueOf(key);
+      return store !== obj ? store : namespace(obj, key);
+    }
+  }
+
+  /* WeakMap, Map, and Hash all implement the following API with one difference:
+    * WeakMap - Object keys only, provides for better garbage collection
+    * Map - Allows anything to be a key
+    * Hash - Allows only primitives to be keys
+
+  /**
+   * @method set
+   * @description Add or update a pair in the map. Enforces uniqueness by overwriting.
+   * @param  {Any} key
+   * @param  {Any} val
+   * @return {Any} returns value passed in
+   */
+
+  /**
+   * @method get
+   * @description Retrieve the value that matches key
+   * @param  {Any} key
+   * @return {Any}
+   */
+
+  /**
+   * @method has
+   * @description Check if key is in Map
+   * @param  {Any} key
+   * @return {Boolean}
+   */
+
+  /**
+   * @method delete
+   * @description Remove key and matching value if found
+   * @param  {Any} key
+   * @return {Boolean} true item was in collection
+   */
+
+  /**
+   * TODO:
+   *  keys
+   *  values
+   *  iterate
+   */
+
+  /**
+   * @class WeakMap
+   * @description Collection using objects with unique identities as keys that disallows enumeration and allows for better garbage collection.
+   */
+  var WeakMap = function(){
+    var weakmaps = new Name;
+    return glue([
+      function WeakMap(){
+        if (!(this instanceof WeakMap)) return new WeakMap;
+        weakmaps(this).lookup = new Name;
+      },
+      function get(key){
+        return weakmaps(this).lookup(key).value;
+      },
+      function set(key, value){
+        return weakmaps(this).lookup(key).value = value;
+      },
+      function has(key){
+        return hasOwn.call(weakmaps(this).lookup(key), 'value');
+      },
+      function delet\u0065(key){
+        var store = weakmaps(this).lookup(key);
+        if (hasOwn.call(store, 'value')) {
+          delete store.value;
+          return true;
+        } else {
+          return false;
+        }
+      }
+    ]);
+  }();
+
+
+  /**
+   * @class Map
+   * @description Collection that only allows primitives to be keys.
+   */
+  var Hash = function(){
+    var hashes = new WeakMap;
+    return glue([
+      function Hash(){
+        if (!(this instanceof Hash)) return new Hash;
+        hashes.set(this, Object.create(null));
+      },
+      function get(key){
+        return hashes.get(this)[key];
+      },
+      function set(key, value){
+        return hashes.get(this)[key] = value;
+      },
+      function has(key){
+        return key in hashes.get(this);
+      },
+      function delet\u0065(key){
+        var hash = hashes.get(this);
+        var has = key in hash;
+        if (key in hash) {
+          delete hash[key]
+          return true;
+        } else {
+          return false;
+        }
+      },
       /**
        * Retrieve all keys
        * @return {Array}
        */
-      keys: __(function keys(){
-        return [].concat(search(this).keys);
-      }),
-
+      //function keys(){},
       /**
        * Retrieve all values
        * @return {Array}
        */
-      values: __(function values(){
-        return [].concat(search(this).vals);
-      }),
-
+      //function values(){},
       /**
-       * Loop through the Map raising callback for each
-       * @param  {Function} callback  `callback(key, value, index)`
+       * Loop through the collection raising callback for each
+       * @param  {Function} callback  `callback(value, index)`
        * @param  {Object}   context    The `this` binding for callbacks, default null
        */
-      iterate: __(function iterate(callback, context){
-        var map = search(this);
-        for (var i=0, len=map.keys.length; i < len; i++) {
-          callback.call(context || null, map.keys[i], map.vals[i], i);
-        }
-      })
-    });
+      //function iterate(callback, context){}
+    ]);
+  }()
 
 
-    function search(map, key){
-      var mapi = map === last.map ? last.mapi : find(maps, map);
-      if (~mapi) {
-        if (typeof key !== 'undefined') {
-          var keyi = find(keysets[mapi], key);
-          last.key = key;
-          if (~keyi) {
-            last.keyi = keyi;
-          }
-        }
-        last.map = map;
-        last.mapi = mapi;
-        return {
-          keys: keysets[mapi],
-          vals: valsets[mapi],
-          index: keyi
-        };
-      }
-      IncompatibleError(Map);
-    }
-
-    function find(keys, key){
-      var i = keys.length;
-      while (i--) {
-        if (egal(key, keys[i])) {
-          return i;
-        }
-      }
-      return -1;
-    }
-
-    return Map;
-  })();
-
-  var WeakMap = exports.WeakMap = (function(){
-
-    var weakmaps = new Map;
-    var last = {};
-
-    /**
-     * Collection using objects with unique identities as keys that disallows enumeration.
-     */
-    function WeakMap(){
-      var weakmap = Object.create(WeakMap.prototype);
-      weakmaps.set(weakmap, Map());
-      return weakmap;
-    }
-
-    WeakMap.prototype = Object.create(proto, {
-      constructor: __(WeakMap),
-
+  /**
+   * @class Map
+   * @description Collection that allows any kind of value to be a key.
+   */
+  var Map = function(){
+    var maps = new WeakMap;
+    return glue([
+      function Map(){
+        if (!(this instanceof Map)) return new Map;
+        maps.set(this, [new Hash, new Name]);
+      },
+      function get(key){
+        return maps.get(this)[isObject(key)].get(key);
+      },
+      function set(key, value){
+        return maps.get(this)[isObject(key)].set(key, value);
+      },
+      function has(key){
+        return maps.get(this)[isObject(key)].has(key);
+      },
+      function delet\u0065(key){
+        return maps.get(this)[isObject(key)].delete(key);
+      },
       /**
-       * Add or update a pair in the map. Enforces uniqueness by overwriting.
-       * @param  {Object} Requires non-primitive
-       * @param  {Any} val
-       * @return {Any} returns value passed in
+       * Retrieve all keys
+       * @return {Array}
        */
-      set: __(function set(key, val){
-        if (Object(key) !== key) {
-          throw new TypeError('Primitives are not valid WeakMap keys.');
-        }
-        return search(this).set(key, val);
-      }),
-
+      //function keys(){},
       /**
-       * Retrieve the value that matches key
-       * @param  {Object} key
-       * @return {Any}
+       * Retrieve all values
+       * @return {Array}
        */
-      get: __(function get(key){
-        return search(this).get(key);
-      }),
-
+      //function values(){},
       /**
-       * Check if key is in Map
-       * @param  {Object} key
-       * @return {Boolean}
+       * Loop through the collection raising callback for each
+       * @param  {Function} callback  `callback(value, index)`
+       * @param  {Object}   context    The `this` binding for callbacks, default null
        */
-      has: __(function has(key){
-        return search(this).has(key);
-      }),
+      //function iterate(callback, context){}
+    ]);
+  }();
 
-      /**
-       * Remove key and matching value if found
-       * @param  {Object} key
-       * @return {Boolean} Always true
-       */
-      delete: __(function del(key){
-        return search(this).delete(key);
-      })
-    });
 
-    function search(weakmap){
-      if (last.weakmap === weakmap) return last.map;
-      var map = weakmaps.get(weakmap);
-      if (map) {
-        last.weakmap = weakmap;
-        return last.map = map;
-      }
-      IncompatibleError(WeakMap);
-    }
+  /**
+   * @class Set
+   * @description Collection of values that enforces uniqueness.
+   */
+  var Set = function(){
+    var sets = new WeakMap;
+    return glue([
 
-    return WeakMap;
-  })();
-
-  var Set = exports.Set = (function(){
-
-    var sets = new Map;
-    var last = {};
-
-    /**
-     * Collection of values that enforces uniqueness.
-     */
-    function Set(){
-      var set = Object.create(Set.prototype);
-      sets.set(set, Map());
-      return set;
-    }
-
-    Set.prototype = Object.create(proto, {
-      constructor: __(Set),
+      function Set(){
+        if (!(this instanceof Set)) return new Set;
+        sets.set(this, new Map);
+      },
 
       /**
        * Insert value if not found, enforcing uniqueness.
        * @param  {Any} val
        */
-      add: __(function add(val){
-        search(this).set(val, true);
-      }),
+      function add(key){
+        return sets.get(this).set(key, true);
+      },
 
       /**
        * Check if value is in Set
        * @param  {Any}      val
        * @return {Boolean}
        */
-      has: __(function has(val){
-        return search(this).has(val);
-      }),
+      function has(key){
+        return sets.get(this).has(key);
+      },
 
       /**
        * Remove value if found
        * @param  {Any}      val
        * @return {Boolean}  Always true
        */
-      delete: __(function del(val){
-        return search(this).delete(val);
-      }),
-
+      function delet\u0065(key){
+        return sets.get(this).delete(key);
+      },
       /**
        * Retrieve all values
        * @return {Array}
        */
-      values: __(function values(callback, context){
-        return search(this).keys();
-      }),
-
+      //function values(callback, context){},
       /**
-       * Loop through the Set raising callback for each
+       * Loop through the collection raising callback for each
        * @param  {Function} callback  `callback(value, index)`
        * @param  {Object}   context    The `this` binding for callbacks, default null
        */
-      iterate: __(function iterate(callback, context){
-        var keys = search(this).keys();
-        for (var i=0, len=keys.length; i < len; i++) {
-          callback.call(context || null, keys[i], i);
-        }
-      })
-    });
+      //function iterate(callback, context){}
+    ]);
+  }();
 
-    function search(set){
-      if (last.set === set) return last.map;
-      var map = sets.get(set);
-      if (map) {
-        last.set = set;
-        return last.map = map;
-      }
-      IncompatibleError(Set);
-    }
-
-    return Set;
-  })();
-
-  function __(val, hidden){
-    if (typeof val === 'function') {
-      Object.defineProperty(val, 'toString', {
-        configurable: true,
-        writable: true,
-        value: toString
-      });
-    }
-    return { value: val };
-  }
-
-  var source = (Function+'').split('Function');
-
-  function toString(){
-    if (typeof this === 'function') {
-      return source[0]+this.name+source[1];
-    } else {
-      return '[object '+Object.getPrototypeOf(this).constructor.name+']';
-    }
-  }
-
-  function IncompatibleError(type){
-    var err = new TypeError;
-    err.message = type.name+' function called on an incompatible object.';
-    var stack = err.stack.split('\n');
-    stack.splice(1, 3);
-    err.stack = stack.join('\n');
-    throw err;
-  }
-
-  /**
-   * Check a function's name and names of proprties on its prototype. Map and Set are common
-   * names so checking that they exist isn't adequate. This is ignored if not in browser/using exports.
-   * @param  {String}   name       Name of the constructor
-   * @param  {String[]} functions  Names of expected prototype properties
-   * @return {Boolean}
-   */
-  function matches(name, props){
-    if (name in global && global[name].name === name && global[name].prototype) {
-      return props.every(function(prop){
-        return prop in global[name].prototype;
-      });
-    }
-  }
-
-  /**
-   * Strict equals with a couple differences: egal(-0, 0) is false, egal(NaN, NaN) is true
-   * @param  {Any} a
-   * @param  {Any} b
-   * @return {Boolean}
-   */
-  function egal(a, b){
-    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
-  }
-  /**
-   * Add Map, WeakMap, and Set to the global object if a native version isn't found.
-   */
-  function attachIfMissing(){
-    if (!matches('Map', ['get', 'set', 'has', 'delete'])) {
-      global.Map = Map;
-    }
-    if (!matches('WeakMap', ['get', 'set', 'has', 'delete']) ||
-      // also patch over the WeakMap implementation in node 0.6.x which suffers from
-      // a bug that makes WeakMaps nearly useless for any practical purpose anyway
-        (process && process.versions && process.versions.v8 &&
-         parseFloat(process.versions.v8) < 3.7)) {
-      global.WeakMap = WeakMap;
-    }
-    if (!matches('Set', ['add', 'has', 'delete'])) {
-      global.Set = Set;
-    }
-  }
-
-  exports.attachIfMissing = attachIfMissing;
-
-  if (typeof window !== 'undefined') {
-    attachIfMissing();
-  }
-
-})(typeof exports !== 'undefined' ? exports : {},
-   typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : this)
+  'Hash' in exports || (exports.Hash = Hash);
+  'Map' in exports || (exports.Map = Map);
+  'Set' in exports || (exports.Set = Set);
+  'WeakMap' in exports || (exports.WeakMap = WeakMap);
+}(typeof module === 'undefined' ? this : module.exports, new Function('return this')());
