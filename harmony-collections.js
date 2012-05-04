@@ -1,118 +1,123 @@
 !function(Name, exports, global){
   // Original by Gozala @ https://gist.github.com/1269991
   // Updated by Raynos @ https://gist.github.com/1638059
-  // Modified and expanded to [Map, Hash, Set] by Benvie @ https://github.com/Benvie
+  // Expanded to full spec realization by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
   "use strict";
 
-  function exporter(name, init){
-    if (!(name in global))
-      global[name] = init()
+  if (!Function.prototype.name) {
+    // IE
+    var toCode = Function.call.bind(Function.prototype.toString);
+    Object.defineProperty(Function.prototype, 'name', {
+      get: function(){
+        if (this === Function.prototype)
+          return 'Empty';
+        var src = toCode(this);
+        src = src.slice(9, src.indexOf('('));
+        Object.defineProperty(this, 'name', { value: src });
+        return src
+      }
+    });
   }
+
+
 
   function isObject(o){
     return Object(o) === o;
   }
 
-  var hasOwn = Object.prototype.hasOwnProperty;
-  var makeName;
-  var glue = function(){
-    var GOPN = Object.getOwnPropertyNames;
-    var desc = {
-      configurable: true,
-      writable: true,
-      enumerable: false
-    };
-    var code = Object.toString().replace(/\n/g,'\\n').split('Object');
-    var toString = new Function("return function toString(){ return '"+code[0]+"'+this.name+'"+code[1]+"' }")();
-    if (!Function.prototype.name) {
-      Object.defineProperty(Function.prototype, 'name', {
-        get: function(){
-          if (this === Function.prototype) return 'Empty';
-          var src = Function.prototype.toString.call(this);
-          src = src.slice(9, src.indexOf('('));
-          Object.defineProperty(this, 'name', { value: src });
-          return src
-        }
-      });
-    }
-
-    function definer(o, v){
-      var vname = v.name;
-      if (vname.slice(-1) === '_')
-        vname = vname.slice(0,-1);
-      desc.value = v;
-      Object.defineProperty(o, vname, desc);
+  function initializer(){
+    function defineByName(o, fn){
+      var vname = typeof fn.name === 'string' ? fn.name.replace(/_$/, '') : '';
+      hiddenDesc.value = fn;
+      Object.defineProperty(o, vname, hiddenDesc);
+      fakeNativeCode(fn);
+      hiddenDesc.value = null;
       return vname;
     }
 
-    function defineMethods(o,v){
+    function defineMethods(o, v){
       if (Array.isArray(v)) {
         v.forEach(function(v){
-          definer(o, v);
+          defineByName(o, v);
         });
       } else {
-        definer(o, v);
+        defineByName(o, v);
       }
-      desc.value = null;
       return o;
     }
 
-    function fakeNative(fn){
-      /*@cc_on return Object.defineProperty(fn, 'toString', { value: toString }); @*/
-      return defineMethods(fn, toString);
-    }
+    var fakeNativeCode = Function.__proto__
+        ? function fakeNativeCode(fn){
+            if (fn !== toString)
+              fn.__proto__ = toString;
+            return fn;
+          }
+        : function fakeNativeCode(fn){
+            if (fn.toString !== toString)
+              defineMethods(fn, toString);
+            return fn;
+          };
 
-    fakeNative(toString);
 
+    var code = 'return function toString(){ return "'+(Object+'').replace(/\n/g,'\\n').replace('Object', '"+this.name+"')+'" }',
+        hiddenDesc = { configurable: true, writable: true, enumerable: false },
+        toString = new Function(code)();
 
-    var names = [];
-    makeName = function(){
-      var name = '_'+(Math.random() / 1.1).toString(36).slice(2);
-      names.push(name);
-      return name;
-    }
+    defineMethods(toString, toString);
 
-    defineMethods(Object, function getOwnPropertyNames(o){
-      var props = GOPN(o);
-      names.forEach(function(name){
-        if (hasOwn.call(o, name)) {
-          props.splice(props.indexOf(name), 1);
-        }
-      });
-      return props;
-    });
+    return {
+      makeRandomKey: function(){
+        var randomKeys = Object.create(null),
+            properties = Object.getOwnPropertyNames;
 
-    fakeNative(Object.getOwnPropertyNames);
+        defineMethods(Object, function getOwnPropertyNames(o){
+          return properties(o).filter(function(key){
+            return !(key[0] === '_' || key in randomKeys);
+          });
+        });
 
-    return function(methods){
-      var Ctor = methods.shift();
-      var brand = '[object '+Ctor.name+']';
-      methods.push(function toString(){ return brand });
-      defineMethods(Ctor.prototype, methods);
-      Ctor.prototype.constructor = Ctor;
-      methods.forEach(fakeNative);
-      return fakeNative(Ctor);
+        return function makeRandomKey(){
+          var key = '_'+(Math.random() / 1.1).toString(36).slice(2);
+          randomKeys[key] = true;
+          return key;
+        };
+      }(),
+      assemble: function(Ctor, methods){
+        var brand = '[object '+Ctor.name+']';
+        methods.push(function toString(){ return brand });
+        methods.forEach(fakeNativeCode);
+        defineMethods(Ctor.prototype, methods);
+        Ctor.prototype.constructor = Ctor;
+        return fakeNativeCode(Ctor);
+      },
+      exporter: function(name, init){
+        //if (!(name in global))
+          exports[name] = init();
+      }
     };
-  }();
+  }
+
 
   function Pair(key, value){
     this.key = key;
     this.value = value;
   }
 
-  var storage = new Name(makeName());
+  var prep = initializer(),
+      hasOwn = Function.call.bind({}.hasOwnProperty),
+      storage = new Name(prep.makeRandomKey());
 
   /**
    * @class WeakMap
    * @description Collection using objects with unique identities as keys that disallows enumeration
    *  and allows for better garbage collection.
    */
-  exporter('WeakMap', function(){
-    return glue([
+  prep.exporter('WeakMap', function(){
+    return prep.assemble(
       function WeakMap(){
         if (!(this instanceof WeakMap)) return new WeakMap;
-        storage(this).weakmap = new Name(makeName());
-      },
+        storage(this).weakmap = new Name(prep.makeRandomKey());
+      }, [
       /**
        * @method       <get>
        * @description  Retrieve the value in the collection that matches key
@@ -139,7 +144,7 @@
        * @return       {Boolean}
        **/
       function has(key){
-        return hasOwn.call(storage(this).weakmap(key), 'value');
+        return hasOwn(storage(this).weakmap(key), 'value');
       },
       /**
        * @method       <delete>
@@ -149,7 +154,7 @@
        */
       function delete_(key){
         var store = storage(this).weakmap(key);
-        if (hasOwn.call(store, 'value')) {
+        if (hasOwn(store, 'value')) {
           delete store.value;
           return true;
         } else {
@@ -164,12 +169,12 @@
    * @class Hash
    * @description Collection that only allows primitives to be keys.
    */
-  exporter('Hash', function(){
-    return glue([
+  prep.exporter('Hash', function(){
+    return prep.assemble(
       function Hash(){
         if (!(this instanceof Hash)) return new Hash;
         storage(this).hash = Object.create(null);
-      },
+      }, [
       /**
        * @method       <get>
        * @description  Retrieve the value in the collection that matches key
@@ -189,6 +194,12 @@
       function set(key, value){
         return storage(this).hash[key] = value;
       },
+      /**
+       * @method       <has>
+       * @description  Check if key exists in the collection.
+       * @param        {Any} key
+       * @return       {Boolean} is in collection
+       **/
       function has(key){
         return key in storage(this).hash;
       },
@@ -273,8 +284,8 @@
    * @class Map
    * @description Collection that allows any kind of value to be a key.
    */
-  exporter('Map', function(){
-    return glue([
+  prep.exporter('Map', function(){
+    return prep.assemble(
       function Map(){
         if (!(this instanceof Map)) return new Map;
         storage(this).map = {
@@ -282,7 +293,7 @@
           keys: [],
           values: []
         };
-      },
+      }, [
       /**
        * @method       <get>
        * @description  Retrieve the value in the collection that matches key
@@ -301,9 +312,10 @@
        * @return       {Any} returns value passed in
        **/
       function set(key, value){
-        var map = storage(this).map;
-        var table = map.tables[+isObject(key)];
-        var index = table.get(key);
+        var map = storage(this).map,
+            table = map.tables[+isObject(key)],
+            index = table.get(key);
+
         if (index === undefined) {
           table.set(key, map.keys.length);
           map.keys.push(key);
@@ -314,6 +326,12 @@
         }
         return value;
       },
+      /**
+       * @method       <has>
+       * @description  Check if key exists in the collection.
+       * @param        {Any} key
+       * @return       {Boolean} is in collection
+       **/
       function has(key){
         return storage(this).map.tables[+isObject(key)].has(key);
       },
@@ -324,9 +342,10 @@
        * @return       {Boolean} true if item was in collection
        */
       function delete_(key){
-        var map = storage(this).map;
-        var table = map.tables[+isObject(key)];
-        var index = table.get(key);
+        var map = storage(this).map,
+            table = map.tables[+isObject(key)],
+            index = table.get(key);
+
         if (index === undefined) {
           return false;
         } else {
@@ -359,9 +378,10 @@
        * @param        {Object}   context    The `this` binding for callbacks, default null
        */
       function iterate(callback, context){
-        var map = storage(this).map;
-        var keys = map.keys;
-        var values = map.values;
+        var map = storage(this).map,
+            keys = map.keys,
+            values = map.values;
+
         context = isObject(context) ? context : global;
 
         for (var i=0, len=keys.length; i < len; i++) {
@@ -388,12 +408,12 @@
    * @class        |Set|
    * @description  Collection of values that enforces uniqueness.
    **/
-  exporter('Set', function(){
-    return glue([
+  prep.exporter('Set', function(){
+    return prep.assemble(
       function Set(){
         if (!(this instanceof Set)) return new Set;
         storage(this).set = new Map;
-      },
+      }, [
       /**
        * @method       <add>
        * @description  Insert value if not found, enforcing uniqueness.
@@ -402,6 +422,12 @@
       function add(key){
         return storage(this).set.set(key, true);
       },
+      /**
+       * @method       <has>
+       * @description  Check if key exists in the collection.
+       * @param        {Any} key
+       * @return       {Boolean} is in collection
+       **/
       function has(key){
         return storage(this).set.has(key);
       },
