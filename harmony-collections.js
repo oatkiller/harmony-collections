@@ -1,483 +1,575 @@
-!function(Name, exports, global){
-  // Original by Gozala @ https://gist.github.com/1269991
-  // Updated by Raynos @ https://gist.github.com/1638059
-  // Expanded to full spec realization by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
+!function(exports, global){
   "use strict";
-
-  if (!Function.prototype.name) {
-    // IE
-    var toCode = Function.call.bind(Function.prototype.toString);
-    Object.defineProperty(Function.prototype, 'name', {
-      get: function(){
-        if (this === Function.prototype)
-          return 'Empty';
-        var src = toCode(this);
-        src = src.slice(9, src.indexOf('('));
-        Object.defineProperty(this, 'name', { value: src });
-        return src
-      }
-    });
-  }
-
-
+  // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
+  // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
+  // Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
 
   function isObject(o){
     return Object(o) === o;
   }
 
-  function initializer(){
-    function defineByName(o, fn){
-      var vname = typeof fn.name === 'string' ? fn.name.replace(/_$/, '') : '';
-      hiddenDesc.value = fn;
-      Object.defineProperty(o, vname, hiddenDesc);
-      fakeNativeCode(fn);
-      hiddenDesc.value = null;
-      return vname;
-    }
+  function isPrimitive(o){
+    return Object(o) !== o;
+  }
 
-    function defineMethods(o, v){
-      if (Array.isArray(v)) {
-        v.forEach(function(v){
-          defineByName(o, v);
-        });
-      } else {
-        defineByName(o, v);
-      }
-      return o;
-    }
+  var hasOwn = Function.call.bind({}.hasOwnProperty);
+  var keystore = Object.create.bind(null, null);
 
-    var fakeNativeCode = Function.__proto__
-        ? function fakeNativeCode(fn){
-            if (fn !== toString)
-              fn.__proto__ = toString;
-            return fn;
+  var UID = function(){
+    var keys = keystore();
+    return function UID(){
+      var key = '$'+(Math.random() / 1.1).toString(36).slice(2);
+      return key in keys ? UID() : keys[key] = key;
+    }
+  }();
+
+
+  if (!Function.prototype.name) {
+    // patch IE
+    !function(){
+      var toCode = Function.call.bind(Function.prototype.toString);
+      Object.defineProperty(Function.prototype, 'name', {
+        configureable: true,
+        get: function(){
+          if (this === Function.prototype)
+            return 'Empty';
+          var src = toCode(this);
+          src = src.slice(9, src.indexOf('('));
+          Object.defineProperty(this, 'name', { value: src });
+          return src
+        }
+      });
+    }();
+  }
+
+  var Locker = function(){
+
+    // common per-object storage area made hidden by patching getOwnPropertyNames
+    var perObjectStorage = function(){
+      var getProps = Object.getOwnPropertyNames;
+      var globalUID = UID();
+
+      Object.defineProperty(Object, 'getOwnPropertyNames', {
+        configurable: true,
+        writable: true,
+        value: function getOwnPropertyNames(obj){
+          var props = getProps(obj);
+          if (hasOwn(obj, globalUID)) {
+            props.splice(props.indexOf(globalUID), 1);
           }
-        : function fakeNativeCode(fn){
-            if (fn.toString !== toString)
-              defineMethods(fn, toString);
-            return fn;
-          };
+          return props;
+        }
+      });
 
+      // check for the random key on an object, create new storage if missing, return it
+      return function perObjectStorage(obj){
+        if (hasOwn(obj, globalUID)) {
+          return obj[globalUID];
+        } else {
+          var store = keystore();
+          if (Object.isExtensible(obj)) {
+            Object.defineProperty(obj, globalUID, { value: store });
+          } else {
+            throw new Error('Storage for non-exstenible objects not implemented yet');
+          }
+          return store;
+        }
+      }
+    }();
 
-    var code = 'return function toString(){ return "'+(Object+'').replace(/\n/g,'\\n').replace('Object', '"+this.name+"')+'" }',
-        hiddenDesc = { configurable: true, writable: true, enumerable: false },
-        toString = new Function(code)();
+    function Locker(name){
+      var privateUID = UID();
+      var hashkey = keystore();
 
-    defineMethods(toString, toString);
-
-    return {
-      makeRandomKey: function(){
-        var randomKeys = Object.create(null),
-            properties = Object.getOwnPropertyNames;
-
-        defineMethods(Object, function getOwnPropertyNames(o){
-          return properties(o).filter(function(key){
-            return !(key[0] === '_' || key in randomKeys);
+      this.name = name;
+      this.unlocker = function unlocker(obj){
+        var storage = perObjectStorage(obj);
+        if (hasOwn(storage, privateUID)) {
+          return storage[privateUID](hashkey);
+        } else {
+          // a lockbox is a sealed object with only one writable property named 'value'
+          var lockbox = Object.preventExtensions(Object.create(null, {
+            value: {
+              writable: true,
+              value: undefined
+            }
+          }));
+          Object.defineProperty(storage, privateUID, {
+            configurable: true,
+            value: new Function('h','l', '"use strict"; return function(k){ if (k === h) return l; else throw k }')(hashkey, lockbox)
           });
-        });
+          return lockbox;
+        }
+      };
+    }
 
-        return function makeRandomKey(){
-          var key = '_'+(Math.random() / 1.1).toString(36).slice(2);
-          randomKeys[key] = true;
-          return key;
-        };
-      }(),
-      assemble: function(Ctor, methods){
-        var brand = '[object '+Ctor.name+']';
-        methods.push(function toString(){ return brand });
-        methods.forEach(fakeNativeCode);
-        defineMethods(Ctor.prototype, methods);
-        Ctor.prototype.constructor = Ctor;
-        return fakeNativeCode(Ctor);
+    Locker.prototype = {
+      get: function get(obj){
+        return this.unlocker(obj).value;
       },
-      exporter: function(name, init){
-        //if (!(name in global))
-          exports[name] = init();
+      set: function set(obj, value){
+        return this.unlocker(obj).value = value;
+      },
+      unwrapper: function unwrapper(){
+        var self = this;
+        return function unwrap(o){
+          var item = self.unlocker(o).value;
+          if (!item)
+            throw new TypeError(self.name + " not found");
+          return item;
+        }
       }
     };
-  }
 
+    return Locker;
+  }();
 
-  function Pair(key, value){
-    this.key = key;
-    this.value = value;
-  }
+  !function(){
+    function Pair(key, value){
+      this.key = key;
+      this.value = value;
+    }
 
-  var prep = initializer(),
-      hasOwn = Function.call.bind({}.hasOwnProperty),
-      storage = new Name(prep.makeRandomKey());
+    Pair.prototype.valueOf = function valueOf(){
+      return this.value;
+    }
 
-  /**
-   * @class WeakMap
-   * @description Collection using objects with unique identities as keys that disallows enumeration
-   *  and allows for better garbage collection.
-   */
-  prep.exporter('WeakMap', function(){
-    return prep.assemble(
-      function WeakMap(){
-        if (!(this instanceof WeakMap)) return new WeakMap;
-        storage(this).weakmap = new Name(prep.makeRandomKey());
-      }, [
-      /**
-       * @method       <get>
-       * @description  Retrieve the value in the collection that matches key
-       * @param        {Any} key
-       * @return       {Any}
-       */
-      function get(key){
-        return storage(this).weakmap(key).value;
-      },
-      /**
-       * @method       <set>
-       * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
-       * @param        {Any} key
-       * @param        {Any} val
-       * @return       {Any} returns value passed in
-       **/
-      function set(key, value){
-        return storage(this).weakmap(key).value = value;
-      },
-      /*
-       * @method       <has>
-       * @description  Check if key is in the collection
-       * @param        {Any} key
-       * @return       {Boolean}
-       **/
-      function has(key){
-        return hasOwn(storage(this).weakmap(key), 'value');
-      },
-      /**
-       * @method       <delete>
-       * @description  Remove key and matching value if found
-       * @param        {Any} key
-       * @return       {Boolean} true if item was in collection
-       */
-      function delete_(key){
-        var store = storage(this).weakmap(key);
-        if (hasOwn(store, 'value')) {
-          delete store.value;
-          return true;
-        } else {
-          return false;
+    function provide(name, init){
+      if (!exports[name])
+        exports[name] = init();
+    }
+
+    var assemble = function(){
+      var code = 'return function toString(){ return "'+(Object+'').replace(/\n/g,'\\n').replace('Object', '"+this.name+"')+'" }',
+          toString = {  configurable: true,  writable: true,  value: new Function(code)()  },
+          hidden = { enumerable: false };
+
+      if (Function.__proto__) {
+        var fnproto = Object.create(Function.prototype, { toString: toString });
+        var setToString = function(fn){
+          fn.__proto__ = fnproto;
+        }
+      } else {
+        var setToString = function(fn){
+          Object.defineProperty(fn, 'toString', toString);
         }
       }
-    ]);
-  });
 
-
-  /**
-   * @class Hash
-   * @description Collection that only allows primitives to be keys.
-   */
-  prep.exporter('Hash', function(){
-    return prep.assemble(
-      function Hash(){
-        if (!(this instanceof Hash)) return new Hash;
-        storage(this).hash = Object.create(null);
-      }, [
-      /**
-       * @method       <get>
-       * @description  Retrieve the value in the collection that matches key
-       * @param        {Any} key
-       * @return       {Any}
-       */
-      function get(key){
-        return storage(this).hash[key];
-      },
-      /**
-       * @method       <set>
-       * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
-       * @param        {Any} key
-       * @param        {Any} val
-       * @return       {Any} returns value passed in
-       **/
-      function set(key, value){
-        return storage(this).hash[key] = value;
-      },
-      /**
-       * @method       <has>
-       * @description  Check if key exists in the collection.
-       * @param        {Any} key
-       * @return       {Boolean} is in collection
-       **/
-      function has(key){
-        return key in storage(this).hash;
-      },
-      /**
-       * @method       <delete>
-       * @description  Remove key and matching value if found
-       * @param        {Any} key
-       * @return       {Boolean} true if item was in collection
-       */
-      function delete_(key){
-        var hash = storage(this).hash;
-        var has = key in hash;
-        if (key in hash) {
-          delete hash[key]
-          return true;
-        } else {
-          return false;
-        }
-      },
-      /**
-       * @method       <keys>
-       * @description  Returns an array containing the keys
-       * @return       {Array}
-       **/
-      function keys(){
-        return Object.keys(storage(this).hash);
-      },
-      /**
-       * @method       <values>
-       * @description  Returns an array containing the values
-       * @return       {Array}
-       **/
-      function values(){
-        var hash = storage(this).hash;
-        return Object.keys(hash).map(function(key){
-          return hash[key];
-        });
-      },
-      /**
-       * @method       <iterate>
-       * @description  Loop through the collection raising callback for each
-       * @param        {Function} callback  `callback(value, key|index)`
-       * @param        {Object}   context    The `this` binding for callbacks, default null
-       */
-      function iterate(callback, context){
-        var hash = storage(this).hash;
-        context = isObject(context) ? context : global;
-        for (var k in hash) {
-          callback.call(context, hash[k], k);
-        }
-      },
-      /**
-       * @method       <toArray>
-       * @description  Returns an array containing key:value pairs
-       * @return       {Pair[]}
-       **
-       **/
-      function toArray(){
-        var out = [];
-        this.iterate(function(value, key){
-          out.push(new Pair(key, value));
-        });
-        return out;
-      },
-      /**
-       * @method       <toObject>
-       * @description  Returns an plain object with the keys and values
-       * @return       {Object}
-       **/
-      function toObject(){
-        var out = {};
-        this.iterate(function(value, key){
-          out[key] = value;
-        });
-        return out;
+      function nativeToString(fn){
+        if (!hasOwn(fn, 'toString') && fn.toString !== toString.value)
+          setToString(fn);
+        return fn;
       }
-    ]);
-  });
 
-
-  /**
-   * @class Map
-   * @description Collection that allows any kind of value to be a key.
-   */
-  prep.exporter('Map', function(){
-    return prep.assemble(
-      function Map(){
-        if (!(this instanceof Map)) return new Map;
-        storage(this).map = {
-          tables: [new Hash, new WeakMap],
-          keys: [],
-          values: []
-        };
-      }, [
-      /**
-       * @method       <get>
-       * @description  Retrieve the value in the collection that matches key
-       * @param        {Any} key
-       * @return       {Any}
-       */
-      function get(key){
-        var map = storage(this).map;
-        return map.values[map.tables[+isObject(key)].get(key)];
-      },
-      /**
-       * @method       <set>
-       * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
-       * @param        {Any} key
-       * @param        {Any} val
-       * @return       {Any} returns value passed in
-       **/
-      function set(key, value){
-        var map = storage(this).map,
-            table = map.tables[+isObject(key)],
-            index = table.get(key);
-
-        if (index === undefined) {
-          table.set(key, map.keys.length);
-          map.keys.push(key);
-          map.values.push(value);
-        } else {
-          map.keys[index] = key;
-          map.values[index] = value;
-        }
-        return value;
-      },
-      /**
-       * @method       <has>
-       * @description  Check if key exists in the collection.
-       * @param        {Any} key
-       * @return       {Boolean} is in collection
-       **/
-      function has(key){
-        return storage(this).map.tables[+isObject(key)].has(key);
-      },
-      /**
-       * @method       <delete>
-       * @description  Remove key and matching value if found
-       * @param        {Any} key
-       * @return       {Boolean} true if item was in collection
-       */
-      function delete_(key){
-        var map = storage(this).map,
-            table = map.tables[+isObject(key)],
-            index = table.get(key);
-
-        if (index === undefined) {
-          return false;
-        } else {
-          table.delete(key);
-          map.keys.splice(index, 1);
-          map.values.splice(index, 1);
-          return true;
-        }
-      },
-      /**
-       * @method       <keys>
-       * @description  Returns an array containing the keys
-       * @return       {Array}
-       **/
-      function keys(){
-        return storage(this).map.keys.slice();
-      },
-      /**
-       * @method       <values>
-       * @description  Returns an array containing the values
-       * @return       {Array}
-       **/
-      function values(){
-        return storage(this).map.values.slice();
-      },
-      /**
-       * @method       <iterate>
-       * @description  Loop through the collection raising callback for each
-       * @param        {Function} callback  `callback(value, key|index)`
-       * @param        {Object}   context    The `this` binding for callbacks, default null
-       */
-      function iterate(callback, context){
-        var map = storage(this).map,
-            keys = map.keys,
-            values = map.values;
-
-        context = isObject(context) ? context : global;
-
-        for (var i=0, len=keys.length; i < len; i++) {
-          callback.call(context, values[i], keys[i]);
-        }
-      },
-      /**
-       * @method       <toArray>
-       * @description  Returns an array containing key:value pairs
-       * @return       {Pair[]}
-       **
-       **/
-      function toArray(){
-        var out = [];
-        this.iterate(function(value, key){
-          out.push(new Pair(key, value));
+      // assemble takes a prototype and prepres it for exporting as a class
+      return function assemble(proto){
+        var brand = '[object '+proto.constructor.name+']';
+        proto.constructor.prototype = proto;
+        proto.toString = function toString(){ return brand };
+        Object.keys(proto).forEach(function(key){
+          Object.defineProperty(proto, key, hidden);
+          if (typeof proto[key] === 'function')
+            nativeToString(proto[key]);
         });
-        return out;
+        return proto.constructor;
       }
-    ]);
-  });
+    }();
 
-  /**
-   * @class        |Set|
-   * @description  Collection of values that enforces uniqueness.
-   **/
-  prep.exporter('Set', function(){
-    return prep.assemble(
-      function Set(){
-        if (!(this instanceof Set)) return new Set;
-        storage(this).set = new Map;
-      }, [
-      /**
-       * @method       <add>
-       * @description  Insert value if not found, enforcing uniqueness.
-       * @param        {Any} val
-       */
-      function add(key){
-        return storage(this).set.set(key, true);
-      },
-      /**
-       * @method       <has>
-       * @description  Check if key exists in the collection.
-       * @param        {Any} key
-       * @return       {Boolean} is in collection
-       **/
-      function has(key){
-        return storage(this).set.has(key);
-      },
-      /**
-       * @method       <delete>
-       * @description  Remove key and matching value if found
-       * @param        {Any} key
-       * @return       {Boolean} true if item was in collection
-       */
-      function delete_(key){
-        return storage(this).set.delete(key);
-      },
-      /**
-       * @method       <values>
-       * @description  Returns an array containing the values
-       * @return       {Array}
-       **/
-      function values(callback, context){
-        return storage(this).set.keys();
-      },
-      /**
-       * @method       <iterate>
-       * @description  Loop through the collection raising callback for each
-       * @param        {Function} callback  `callback(value, key|index)`
-       * @param        {Object}   context    The `this` binding for callbacks, default null
-       */
-      function iterate(callback, context){
-        this.values().forEach(callback, isObject(context) ? context : global);
+
+
+    provide('WeakMap', function(){
+      var weakmaps = new Locker('WeakMap');
+      var unwrap = weakmaps.unwrapper();
+
+      function validate(key){
+        if (isPrimitive(key))
+          throw new TypeError("WeakMap keys must be objects");
       }
-    ]);
-  });
-}(function(hasOwn){
-  // keeping these out of the main scope just to be sure there's no wayward references through sheer magic
-  "use strict";
 
-  function namespace(obj, key, name) {
-    var store = Object.create(null);
-    Object.defineProperty(obj, name, {
-      value: new Function('key','store', '"use strict"; return function(value){ if (value === key) return store }')(key, store)
+      /**
+       * @class WeakMap
+       * @description Collection using objects with unique identities as keys that disallows enumeration
+       *  and allows for better garbage collection.
+       */
+      return assemble({
+        constructor: function WeakMap(){
+          if (!(this instanceof WeakMap))
+            return new WeakMap;
+          weakmaps.set(this, new Locker);
+        },
+        /**
+         * @method       <get>
+         * @description  Retrieve the value in the collection that matches key
+         * @param        {Any} key
+         * @return       {Any}
+         */
+        get: function get(key){
+          validate(key);
+          return unwrap(this).get(key);
+        },
+        /**
+         * @method       <set>
+         * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
+         * @param        {Any} key
+         * @param        {Any} val
+         * @return       {Any} returns value passed in
+         **/
+        set: function set(key, value){
+          validate(key);
+          return unwrap(this).set(key, value);
+        },
+        /*
+         * @method       <has>
+         * @description  Check if key is in the collection
+         * @param        {Any} key
+         * @return       {Boolean}
+         **/
+        has: function has(key){
+          validate(key);
+          return unwrap(this).get(key) !== undefined;
+        },
+        /**
+         * @method       <delete>
+         * @description  Remove key and matching value if found
+         * @param        {Any} key
+         * @return       {Boolean} true if item was in collection
+         */
+        delete: function delete_(key){
+          validate(key);
+          var weakmap = unwrap(this);
+          if (weakmap.get(key) !== undefined) {
+            weakmap.set(key, undefined);
+            return true;
+          } else {
+            return false;
+          }
+        }
+      });
     });
-    return store;
-  }
 
-  return function Name(name){
-    var key = this instanceof Name ? this : Object.create(Name.prototype);
-    return function(obj){
-      return hasOwn(obj, name) ? obj[name](key) : namespace(obj, key, name);
-    };
-  };
-}(Function.call.bind({}.hasOwnProperty)),
-  typeof module === 'undefined' ? this : module.exports,
-  new Function('return this')()
-)
+
+    provide('Hashmap', function(){
+      var hashmaps = new Locker('Hashmap');
+      var unwrap = hashmaps.unwrapper();
+
+      function validate(key){
+        if (key) {
+          var type = typeof key;
+          if (type === 'object' || type === 'function') {
+            key = key.valueOf();
+            if (isObject(key))
+              throw new TypeError("Hashmap keys must have a primitive value");
+          }
+        }
+        return String(key);
+      }
+
+      /**
+       * @class Hashmap
+       * @description Collection that only allows primitives to be keys.
+       */
+      return assemble({
+        constructor: function Hashmap(){
+          if (!(this instanceof Hashmap))
+            return new Hashmap;
+          hashmaps.set(this, keystore());
+        },
+        /**
+         * @method       <get>
+         * @description  Retrieve the value in the collection that matches key
+         * @param        {Any} key
+         * @return       {Any}
+         */
+        get: function get(key){
+          key = validate(key);
+          return unwrap(this)[key];
+        },
+        /**
+         * @method       <set>
+         * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
+         * @param        {Any} key
+         * @param        {Any} val
+         * @return       {Any} returns value passed in
+         **/
+        set: function set(key, value){
+          key = validate(key);
+          return unwrap(this)[key] = value;
+        },
+        /**
+         * @method       <has>
+         * @description  Check if key exists in the collection.
+         * @param        {Any} key
+         * @return       {Boolean} is in collection
+         **/
+        has: function has(key){
+          key = validate(key);
+          return key in unwrap(this);
+        },
+        /**
+         * @method       <delete>
+         * @description  Remove key and matching value if found
+         * @param        {Any} key
+         * @return       {Boolean} true if item was in collection
+         */
+        delete: function delete_(key){
+          key = validate(key);
+          var hash = unwrap(this);
+          var has = key in hash;
+          if (key in hash) {
+            delete hash[key]
+            return true;
+          } else {
+            return false;
+          }
+        },
+        /**
+         * @method       <keys>
+         * @description  Returns an array containing the keys
+         * @return       {Array}
+         **/
+        keys: function keys(){
+          return Object.keys(unwrap(this));
+        },
+        /**
+         * @method       <values>
+         * @description  Returns an array containing the values
+         * @return       {Array}
+         **/
+        values: function values(){
+          var hash = unwrap(this);
+          return Object.keys(hash).map(function(key){
+            return hash[key];
+          });
+        },
+        /**
+         * @method       <iterate>
+         * @description  Loop through the collection raising callback for each
+         * @param        {Function} callback  `callback(value, key|index)`
+         * @param        {Object}   context    The `this` binding for callbacks, default null
+         */
+        iterate: function iterate(callback, context){
+          var hash = unwrap(this);
+          context = isObject(context) ? context : global;
+          for (var k in hash) {
+            callback.call(context, hash[k], k);
+          }
+        },
+        /**
+         * @method       <toArray>
+         * @description  Returns an array containing key:value pairs
+         * @return       {Pair[]}
+         **
+         **/
+        toArray: function toArray(){
+          var out = [];
+          this.iterate(function(value, key){
+            out.push(new Pair(key, value));
+          });
+          return out;
+        },
+        /**
+         * @method       <toObject>
+         * @description  Returns an plain object with the keys and values
+         * @return       {Object}
+         **/
+        toObject: function toObject(){
+          var out = {};
+          this.iterate(function(value, key){
+            out[key] = value;
+          });
+          return out;
+        }
+      });
+    });
+
+    provide('Map', function(){
+      var maps = new Locker('Map');
+      var unwrap = maps.unwrapper();
+
+      /**
+       * @class Map
+       * @description Collection that allows any kind of value to be a key.
+       */
+      return assemble({
+        constructor: function Map(){
+          if (!(this instanceof Map))
+            return new Map;
+
+          maps.set(self, {
+            tables: [new exports.Hashmap, new exports.WeakMap],
+            keys: [],
+            values: []
+          });
+          return self;
+        },
+        /**
+         * @method       <get>
+         * @description  Retrieve the value in the collection that matches key
+         * @param        {Any} key
+         * @return       {Any}
+         */
+        get: function get(key){
+          var map = unwrap(this);
+          return map.values[map.tables[+isObject(key)].get(key)];
+        },
+        /**
+         * @method       <set>
+         * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
+         * @param        {Any} key
+         * @param        {Any} val
+         * @return       {Any} returns value passed in
+         **/
+        set: function set(key, value){
+          var map = unwrap(this),
+              table = map.tables[+isObject(key)],
+              index = table.get(key);
+
+          if (index === undefined) {
+            table.set(key, map.keys.length);
+            map.keys.push(key);
+            map.values.push(value);
+          } else {
+            map.keys[index] = key;
+            map.values[index] = value;
+          }
+          return value;
+        },
+        /**
+         * @method       <has>
+         * @description  Check if key exists in the collection.
+         * @param        {Any} key
+         * @return       {Boolean} is in collection
+         **/
+        has: function has(key){
+          return unwrap(this).tables[+isObject(key)].has(key);
+        },
+        /**
+         * @method       <delete>
+         * @description  Remove key and matching value if found
+         * @param        {Any} key
+         * @return       {Boolean} true if item was in collection
+         */
+        delete: function delete_(key){
+          var map = unwrap(this),
+              table = map.tables[+isObject(key)],
+              index = table.get(key);
+
+          if (index === undefined) {
+            return false;
+          } else {
+            table.delete(key);
+            map.keys.splice(index, 1);
+            map.values.splice(index, 1);
+            return true;
+          }
+        },
+        /**
+         * @method       <keys>
+         * @description  Returns an array containing the keys
+         * @return       {Array}
+         **/
+        keys: function keys(){
+          return unwrap(this).keys.slice();
+        },
+        /**
+         * @method       <values>
+         * @description  Returns an array containing the values
+         * @return       {Array}
+         **/
+        values: function values(){
+          return unwrap(this).values.slice();
+        },
+        /**
+         * @method       <iterate>
+         * @description  Loop through the collection raising callback for each
+         * @param        {Function} callback  `callback(value, key|index)`
+         * @param        {Object}   context    The `this` binding for callbacks, default null
+         */
+        iterate: function iterate(callback, context){
+          var map = unwrap(this),
+              keys = map.keys,
+              values = map.values;
+
+          context = isObject(context) ? context : global;
+
+          for (var i=0, len=keys.length; i < len; i++) {
+            callback.call(context, values[i], keys[i]);
+          }
+        },
+        /**
+         * @method       <toArray>
+         * @description  Returns an array containing key:value pairs
+         * @return       {Pair[]}
+         **
+         **/
+        toArray: function toArray(){
+          var out = [];
+          this.iterate(function(value, key){
+            out.push(new Pair(key, value));
+          });
+          return out;
+        }
+      });
+    });
+
+    provide('Set', function(){
+      var sets = new Locker('Set');
+      var unwrap = sets.unwrapper();
+
+      /**
+       * @class        |Set|
+       * @description  Collection of values that enforces uniqueness.
+       **/
+      return assemble({
+        constructor: function Set(){
+          if (!(this instanceof Set))
+            return new Set;
+          sets.set(this, new exports.Map);
+        },
+        /**
+         * @method       <add>
+         * @description  Insert value if not found, enforcing uniqueness.
+         * @param        {Any} val
+         */
+        add: function add(key){
+          return unwrap(this).set(key, true);
+        },
+        /**
+         * @method       <has>
+         * @description  Check if key exists in the collection.
+         * @param        {Any} key
+         * @return       {Boolean} is in collection
+         **/
+        has: function has(key){
+          return unwrap(this).has(key);
+        },
+        /**
+         * @method       <delete>
+         * @description  Remove key and matching value if found
+         * @param        {Any} key
+         * @return       {Boolean} true if item was in collection
+         */
+        delete: function delete_(key){
+          return unwrap(this).delete(key);
+        },
+        /**
+         * @method       <values>
+         * @description  Returns an array containing the values
+         * @return       {Array}
+         **/
+        values: function values(callback, context){
+          return unwrap(this).keys();
+        },
+        /**
+         * @method       <iterate>
+         * @description  Loop through the collection raising callback for each
+         * @param        {Function} callback  `callback(value, key|index)`
+         * @param        {Object}   context    The `this` binding for callbacks, default null
+         */
+        iterate: function iterate(callback, context){
+          this.values().forEach(callback, isObject(context) ? context : global);
+        }
+      });
+    });
+  }();
+}(typeof module === 'undefined' ? this : module.exports, new Function('return this')())
