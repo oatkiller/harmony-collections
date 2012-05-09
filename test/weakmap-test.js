@@ -44,18 +44,58 @@ test('errors', function(t){
 });
 
 
+function formatSize(s){
+  if (isNaN(s) || s <= 0) return '0b';
+  for (var b=0; s >= 1024; b++) s /= 1024;
+  return (b ? s.toFixed(2)+' '+' kmgt'[b] : s+' ')+'b';
+}
+
 function MemoryReading(name, time){
-  this.name = name;
-  this.timing = process.hrtime(time);
-  this.time = Date.now();
   var reading = process.memoryUsage();
+  this.timing = process.hrtime(time);
+  this.name = name;
+  this.time = process.hrtime(zero)[1];
   this.rss = reading.rss;
   this.total = reading.heapTotal;
   this.used = reading.heapUsed;
 }
+var zero = process.hrtime();
+
+MemoryReading.prototype = {
+  constructor: MemoryReading,
+  compare: function compare(other){
+    var first, last;
+    if (other.time > this.time) {
+      first = this;
+      last = other;
+    } else {
+      first = other;
+      last = this;
+    }
+    var out = Object.create(MemoryReading.prototype);
+    out.start = first;
+    out.end = last;
+    out.name = first.name + ' to ' + last.name;
+    out.time = last.time - first.time;
+    out.rss = last.rss - first.rss;
+    out.total = last.total - first.total;
+    out.used = last.total - first.total;
+    return out;
+  },
+  inspect: function(){
+    return require('util').inspect({
+      name: this.name,
+      time: this.time / 1000000 | 0,
+      rss: formatSize(this.rss),
+      total: formatSize(this.total),
+      used: formatSize(this.used)
+    });
+  }
+};
 
 var reading = MemoryReading.reading = function(readings){
   return function reading(name){
+    name = name || 'auto';
     if (name in readings) {
       var result = readings[name].compare(new MemoryReading(name + '-end'));
       delete readings[name];
@@ -66,29 +106,11 @@ var reading = MemoryReading.reading = function(readings){
   }
 }({});
 
-MemoryReading.prototype = {
-  constructor: MemoryReading,
-  compare: function compare(other){
-    if (other.time > this.time) {
-      var first = this;
-      var last = other;
-    } else {
-      var first = other;
-      var last = this;
-    }
-    return {
-      start: forst,
-      end: last,
-      timespan: last.time - first.time,
-      rss: first.rss - last.rss,
-      total: first.total - last.total,
-      used: first.total - last.total
-    }
-  }
-};
-
 test('garbage collection', function(t){
-  console.log(process.memoryUsage())
+  reading();
+  for (var i=0; i < 100; i++)
+    new WM;
+  console.log(reading());
   t.end();
 });
 

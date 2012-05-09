@@ -4,8 +4,9 @@ Provides Map, Set, and WeakMap with the same usage as the new ES6 native version
 
 For WeakMaps this means there's no way to find what's inside it or how many items are contained, and the only way to get a reference to a value is if you have a direct reference to the key object that links to it.
 
-WeakMap garbage collection functionality isn't quite to spec. Keys hold references to their values strongly which has the potential cause certain types of usage to disallow garbage collection of values in the group. However, even this is still better than any other gc scheme that can be implemented in JS.
+# Compatability
 
+Works with IE9+, Chrome, Firefox, Safari, untested in Opera.
 
 # Collections Usage
 
