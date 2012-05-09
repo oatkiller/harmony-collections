@@ -12,7 +12,7 @@
     return Object(o) !== o;
   }
 
-  var hasOwn = Function.call.bind({}.hasOwnProperty);
+  var hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
   var keystore = Object.create.bind(null, null);
 
   var UID = function(){
@@ -89,10 +89,7 @@
         } else {
           // a lockbox is a sealed object with only one writable property named 'value'
           var lockbox = Object.preventExtensions(Object.create(null, {
-            value: {
-              writable: true,
-              value: undefined
-            }
+            value: { writable: true, value: undefined }
           }));
           Object.defineProperty(storage, privateUID, {
             configurable: true,
@@ -161,16 +158,21 @@
         return fn;
       }
 
-      // assemble takes a prototype and prepres it for exporting as a class
+      // assemble takes a prototype and prepares it for exporting as a class
       return function assemble(proto){
         var brand = '[object '+proto.constructor.name+']';
-        proto.constructor.prototype = proto;
-        proto.toString = function toString(){ return brand };
+
+        proto.toString = function toString(){
+          return brand;
+        };
+
         Object.keys(proto).forEach(function(key){
           Object.defineProperty(proto, key, hidden);
           if (typeof proto[key] === 'function')
             nativeToString(proto[key]);
         });
+
+        proto.constructor.prototype = proto;
         return proto.constructor;
       }
     }();
@@ -395,12 +397,12 @@
           if (!(this instanceof Map))
             return new Map;
 
-          maps.set(self, {
+          maps.set(this, {
             tables: [new exports.Hashmap, new exports.WeakMap],
             keys: [],
             values: []
           });
-          return self;
+          return this;
         },
         /**
          * @method       <get>
@@ -567,7 +569,7 @@
          * @param        {Object}   context    The `this` binding for callbacks, default null
          */
         iterate: function iterate(callback, context){
-          this.values().forEach(callback, isObject(context) ? context : global);
+          this.keys().forEach(callback, isObject(context) ? context : global);
         }
       });
     });
