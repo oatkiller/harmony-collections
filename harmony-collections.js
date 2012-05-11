@@ -108,14 +108,20 @@
       set: function set(obj, value){
         return this.unlocker(obj).value = value;
       },
+      wrapper: function wrapper(){
+        var self = this;
+        return function wrap(obj, value){
+          self.unlocker(obj).value = value;
+        }
+      },
       unwrapper: function unwrapper(){
         var self = this;
-        return function unwrap(o){
-          var item = self.unlocker(o).value;
-          if (!item)
+        return function unwrap(obj){
+          var value = self.unlocker(obj).value;
+          if (!value)
             throw new TypeError(self.name + " is not generic.");
           else
-            return item;
+            return value;
         }
       }
     };
@@ -134,8 +140,10 @@
     };
 
     function provide(name, init){
-      if (!exports[name])
-        exports[name] = init();
+      if (!exports[name]) {
+        var locker = new Locker(name);
+        exports[name] = init(locker.wrapper(), locker.unwrapper());
+      }
     }
 
     var assemble = function(){
@@ -181,9 +189,7 @@
 
 
 
-    provide('WeakMap', function(){
-      var weakmaps = new Locker('WeakMap');
-      var unwrap = weakmaps.unwrapper();
+    provide('WeakMap', function(wrap, unwrap){
 
       function validate(key){
         if (isPrimitive(key))
@@ -199,7 +205,7 @@
         constructor: function WeakMap(){
           if (!(this instanceof WeakMap))
             return new WeakMap;
-          weakmaps.set(this, new Locker);
+          wrap(this, new Locker);
         },
         /**
          * @method       <get>
@@ -252,9 +258,7 @@
 
 
 
-    provide('Hashmap', function(){
-      var hashmaps = new Locker('Hashmap');
-      var unwrap = hashmaps.unwrapper();
+    provide('Hashmap', function(wrap, unwrap){
 
       function validate(key){
         if (key) {
@@ -277,7 +281,7 @@
         constructor: function Hashmap(){
           if (!(this instanceof Hashmap))
             return new Hashmap;
-          hashmaps.set(this, keystore());
+          wrap(this, keystore());
         },
         /**
          * @method       <get>
@@ -386,9 +390,7 @@
 
 
 
-    provide('Map', function(){
-      var maps = new Locker('Map');
-      var unwrap = maps.unwrapper();
+    provide('Map', function(wrap, unwrap){
 
       /**
        * @class Map
@@ -399,13 +401,12 @@
           if (!(this instanceof Map))
             return new Map;
 
-          maps.set(this, {
+          wrap(this, {
             0: new exports.Hashmap,
             1: new exports.WeakMap,
             keys: [],
             values: []
           });
-          return this;
         },
         /**
          * @method       <get>
@@ -518,9 +519,7 @@
 
 
 
-    provide('Set', function(){
-      var sets = new Locker('Set');
-      var unwrap = sets.unwrapper();
+    provide('Set', function(wrap, unwrap){
 
       /**
        * @class        |Set|
@@ -530,7 +529,8 @@
         constructor: function Set(){
           if (!(this instanceof Set))
             return new Set;
-          sets.set(this, new exports.Map);
+
+          wrap(this, new exports.Map);
         },
         /**
          * @method       <add>
