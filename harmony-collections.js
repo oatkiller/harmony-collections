@@ -1,4 +1,4 @@
-!function(exports, global){
+!function(exports, global, undefined){
   "use strict";
   // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
   // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
