@@ -12,7 +12,9 @@
     return Object(o) !== o;
   }
 
-  var hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
+  var Fproto = Function.prototype;
+  var callbind = Fproto.bind.bind(Fproto.call);
+  var hasOwn = callbind(Object.prototype.hasOwnProperty);
   var keystore = Object.create.bind(null, null);
 
   var UID = function(){
@@ -24,14 +26,14 @@
   }();
 
 
-  if (!Function.prototype.name) {
-    // patch IE
+  if (!Fproto.name) {
+    // patch IE's lack of name property on functions
     !function(){
-      var toCode = Function.call.bind(Function.prototype.toString);
-      Object.defineProperty(Function.prototype, 'name', {
+      var toCode = callbind(Fproto.toString);
+      Object.defineProperty(Fproto, 'name', {
         configureable: true,
         get: function(){
-          if (this === Function.prototype)
+          if (this === Fproto)
             return 'Empty';
           var src = toCode(this);
           src = src.slice(9, src.indexOf('('));
@@ -54,24 +56,22 @@
         writable: true,
         value: function getOwnPropertyNames(obj){
           var props = getProps(obj);
-          if (hasOwn(obj, globalUID)) {
+          if (hasOwn(obj, globalUID))
             props.splice(props.indexOf(globalUID), 1);
-          }
           return props;
         }
       });
 
       // check for the random key on an object, create new storage if missing, return it
       return function perObjectStorage(obj){
-        if (hasOwn(obj, globalUID)) {
+        if (hasOwn(obj, globalUID))
           return obj[globalUID];
-        } else {
+        else {
           var store = keystore();
-          if (Object.isExtensible(obj)) {
+          if (Object.isExtensible(obj))
             Object.defineProperty(obj, globalUID, { value: store });
-          } else {
-            throw new Error('Storage for non-exstenible objects not implemented yet');
-          }
+          else
+            throw new Error('Storage for non-extensible objects not implemented yet');
           return store;
         }
       }
@@ -80,20 +80,21 @@
     function Locker(name){
       var privateUID = UID();
       var hashkey = keystore();
+      var src = '"use strict"; return function(k){ if (k === h) return l; else throw new Error("Unauthorized access to Locker"); }';
 
       this.name = name;
       this.unlocker = function unlocker(obj){
         var storage = perObjectStorage(obj);
-        if (hasOwn(storage, privateUID)) {
+        if (hasOwn(storage, privateUID))
           return storage[privateUID](hashkey);
-        } else {
+        else {
           // a lockbox is a sealed object with only one writable property named 'value'
           var lockbox = Object.preventExtensions(Object.create(null, {
             value: { writable: true, value: undefined }
           }));
           Object.defineProperty(storage, privateUID, {
             configurable: true,
-            value: new Function('h','l', '"use strict"; return function(k){ if (k === h) return l; else throw k }')(hashkey, lockbox)
+            value: new Function('h','l', src)(hashkey, lockbox)
           });
           return lockbox;
         }
@@ -112,8 +113,9 @@
         return function unwrap(o){
           var item = self.unlocker(o).value;
           if (!item)
-            throw new TypeError(self.name + " not found");
-          return item;
+            throw new TypeError(self.name + " is not generic.");
+          else
+            return item;
         }
       }
     };
@@ -129,7 +131,7 @@
 
     Pair.prototype.valueOf = function valueOf(){
       return this.value;
-    }
+    };
 
     function provide(name, init){
       if (!exports[name])
@@ -138,18 +140,18 @@
 
     var assemble = function(){
       var code = 'return function toString(){ return "'+(Object+'').replace(/\n/g,'\\n').replace('Object', '"+this.name+"')+'" }',
-          toString = {  configurable: true,  writable: true,  value: new Function(code)()  },
+          toString = { configurable: true,  writable: true,  value: new Function(code)()  },
           hidden = { enumerable: false };
 
       if (Function.__proto__) {
         var fnproto = Object.create(Function.prototype, { toString: toString });
-        var setToString = function(fn){
+        var setToString = function setProto(fn){
           fn.__proto__ = fnproto;
-        }
+        };
       } else {
-        var setToString = function(fn){
+        var setToString = function setToString(fn){
           Object.defineProperty(fn, 'toString', toString);
-        }
+        };
       }
 
       function nativeToString(fn){
@@ -242,12 +244,12 @@
           if (weakmap.get(key) !== undefined) {
             weakmap.set(key, undefined);
             return true;
-          } else {
+          } else
             return false;
-          }
         }
       });
     });
+
 
 
     provide('Hashmap', function(){
@@ -258,7 +260,8 @@
         if (key) {
           var type = typeof key;
           if (type === 'object' || type === 'function') {
-            key = key.valueOf();
+            if (typeof key.valueOf === 'function')
+              key = key.valueOf();
             if (isObject(key))
               throw new TypeError("Hashmap keys must have a primitive value");
           }
@@ -316,13 +319,11 @@
         delete: function delete_(key){
           key = validate(key);
           var hash = unwrap(this);
-          var has = key in hash;
           if (key in hash) {
-            delete hash[key]
+            delete hash[key];
             return true;
-          } else {
+          } else
             return false;
-          }
         },
         /**
          * @method       <keys>
@@ -352,9 +353,8 @@
         iterate: function iterate(callback, context){
           var hash = unwrap(this);
           context = isObject(context) ? context : global;
-          for (var k in hash) {
+          for (var k in hash)
             callback.call(context, hash[k], k);
-          }
         },
         /**
          * @method       <toArray>
@@ -384,6 +384,8 @@
       });
     });
 
+
+
     provide('Map', function(){
       var maps = new Locker('Map');
       var unwrap = maps.unwrapper();
@@ -398,7 +400,8 @@
             return new Map;
 
           maps.set(this, {
-            tables: [new exports.Hashmap, new exports.WeakMap],
+            0: new exports.Hashmap,
+            1: new exports.WeakMap,
             keys: [],
             values: []
           });
@@ -412,7 +415,7 @@
          */
         get: function get(key){
           var map = unwrap(this);
-          return map.values[map.tables[+isObject(key)].get(key)];
+          return map.values[map[+isObject(key)].get(key)];
         },
         /**
          * @method       <set>
@@ -423,7 +426,7 @@
          **/
         set: function set(key, value){
           var map = unwrap(this),
-              table = map.tables[+isObject(key)],
+              table = map[+isObject(key)],
               index = table.get(key);
 
           if (index === undefined) {
@@ -443,7 +446,7 @@
          * @return       {Boolean} is in collection
          **/
         has: function has(key){
-          return unwrap(this).tables[+isObject(key)].has(key);
+          return unwrap(this)[+isObject(key)].has(key);
         },
         /**
          * @method       <delete>
@@ -453,12 +456,12 @@
          */
         delete: function delete_(key){
           var map = unwrap(this),
-              table = map.tables[+isObject(key)],
+              table = map[+isObject(key)],
               index = table.get(key);
 
-          if (index === undefined) {
+          if (index === undefined)
             return false;
-          } else {
+          else {
             table.delete(key);
             map.keys.splice(index, 1);
             map.values.splice(index, 1);
@@ -494,9 +497,8 @@
 
           context = isObject(context) ? context : global;
 
-          for (var i=0, len=keys.length; i < len; i++) {
+          for (var i=0, len=keys.length; i < len; i++)
             callback.call(context, values[i], keys[i]);
-          }
         },
         /**
          * @method       <toArray>
@@ -513,6 +515,8 @@
         }
       });
     });
+
+
 
     provide('Set', function(){
       var sets = new Locker('Set');
