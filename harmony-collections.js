@@ -5,17 +5,28 @@
   // Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
 
   function isObject(o){
-    return Object(o) === o;
+    return o != null && typeof o === 'object' || typeof o === 'function';
   }
 
   function isPrimitive(o){
-    return Object(o) !== o;
+    return o == null || typeof o !== 'object' && typeof o !== 'function';
   }
+
 
   var Fproto = Function.prototype;
   var callbind = Fproto.bind.bind(Fproto.call);
   var hasOwn = callbind(Object.prototype.hasOwnProperty);
   var keystore = Object.create.bind(null, null);
+  var cryoDesc = { writable: true, value: undefined };
+
+  function cryostore(o){
+    o = Object(o);
+    var props = Array.isArray(o) ? o :  Object.keys(o);
+    return Object.preventExtensions(Object.create(null, props.reduce(function(ret, name){
+      ret[name] = name in o ? { value: o[name], writable: true } : cryoDesc;
+      return ret;
+    }, {})));
+  }
 
   var UID = function(){
     var keys = keystore();
@@ -31,7 +42,7 @@
     !function(){
       var toCode = callbind(Fproto.toString);
       Object.defineProperty(Fproto, 'name', {
-        configureable: true,
+        configurable: true,
         get: function(){
           if (this === Fproto)
             return 'Empty';
@@ -48,6 +59,7 @@
 
     // common per-object storage area made hidden by patching getOwnPropertyNames
     var perObjectStorage = function(){
+      var lockerSrc = '"use strict"; return function(k){ if (k === h) return l; }';
       var getProps = Object.getOwnPropertyNames;
       var globalUID = UID();
 
@@ -80,7 +92,6 @@
     function Locker(name){
       var privateUID = UID();
       var hashkey = keystore();
-      var src = '"use strict"; return function(k){ if (k === h) return l; else throw new Error("Unauthorized access to Locker"); }';
 
       this.name = name;
       this.unlocker = function unlocker(obj){
@@ -94,7 +105,7 @@
           }));
           Object.defineProperty(storage, privateUID, {
             configurable: true,
-            value: new Function('h','l', src)(hashkey, lockbox)
+            value: new Function('h','l', lockerSrc)(hashkey, lockbox)
           });
           return lockbox;
         }
