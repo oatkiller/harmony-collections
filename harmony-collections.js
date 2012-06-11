@@ -1,27 +1,20 @@
-!function(exports, global, undefined){
+void function(exports, global){
   "use strict";
   // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
   // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
   // Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
 
-  function isObject(o){
-    return o != null && typeof o === 'object' || typeof o === 'function';
-  }
 
-  function isPrimitive(o){
-    return o == null || typeof o !== 'object' && typeof o !== 'function';
-  }
-
-
-  var Fproto = Function.prototype;
-  var callbind = Fproto.bind.bind(Fproto.call);
-  var hasOwn = callbind(Object.prototype.hasOwnProperty);
-  var keystore = Object.create.bind(null, null);
-  var cryoDesc = { writable: true, value: undefined };
+  var FP = Function.prototype,
+      callbind = FP.bind.bind(FP.call),
+      hasOwn = callbind(Object.prototype.hasOwnProperty),
+      keystore = Object.create.bind(null, null),
+      UNDEFINED = {},
+      cryoDesc = { writable: true, value: undefined };
 
   function cryostore(o){
     o = Object(o);
-    var props = Array.isArray(o) ? o :  Object.keys(o);
+    var props = Array.isArray(o) ? o : Object.keys(o);
     return Object.preventExtensions(Object.create(null, props.reduce(function(ret, name){
       ret[name] = name in o ? { value: o[name], writable: true } : cryoDesc;
       return ret;
@@ -36,15 +29,23 @@
     }
   }();
 
+  function isObject(o){
+    return o != null && typeof o === 'object' || typeof o === 'function';
+  }
 
-  if (!Fproto.name) {
+  function isPrimitive(o){
+    return o == null || typeof o !== 'object' && typeof o !== 'function';
+  }
+
+
+  if (!('name' in FP)) {
     // patch IE's lack of name property on functions
     !function(){
-      var toCode = callbind(Fproto.toString);
-      Object.defineProperty(Fproto, 'name', {
+      var toCode = callbind(FP.toString);
+      Object.defineProperty(FP, 'name', {
         configurable: true,
         get: function(){
-          if (this === Fproto)
+          if (this === FP)
             return 'Empty';
           var src = toCode(this);
           src = src.slice(9, src.indexOf('('));
@@ -56,10 +57,10 @@
   }
 
   var Locker = function(){
+    var lockerSrc = '"use strict"; return function(k){ if (k === h) return l; }';
 
     // common per-object storage area made hidden by patching getOwnPropertyNames
     var perObjectStorage = function(){
-      var lockerSrc = '"use strict"; return function(k){ if (k === h) return l; }';
       var getProps = Object.getOwnPropertyNames;
       var globalUID = UID();
 
@@ -88,6 +89,7 @@
         }
       }
     }();
+
 
     function Locker(name){
       var privateUID = UID();
@@ -226,7 +228,8 @@
          */
         get: function get(key){
           validate(key);
-          return unwrap(this).get(key);
+          var value = unwrap(this).get(key);
+          return value === UNDEFINED ? undefined : value;
         },
         /**
          * @method       <set>
@@ -237,6 +240,8 @@
          **/
         set: function set(key, value){
           validate(key);
+          if (value === undefined)
+            value = UNDEFINED;
           return unwrap(this).set(key, value);
         },
         /*
@@ -589,4 +594,4 @@
       });
     });
   }();
-}(typeof module === 'undefined' ? this : module.exports, new Function('return this')())
+}(typeof exports === 'undefined' ? this : exports, new Function('return this')());
