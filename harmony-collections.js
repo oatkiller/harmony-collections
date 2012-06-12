@@ -142,17 +142,6 @@ void function(global, exports){
   }();
 
   void function(){
-    function Item(key, value){
-      this.key = key;
-      this.value = value;
-    }
-
-    Item.prototype.key = null;
-    Item.prototype.value = null;
-    Item.prototype.valueOf = function valueOf(){
-      return this.value;
-    };
-
     function provide(name, init){
       if (!exports[name]) {
         var locker = new Locker(name);
@@ -222,7 +211,17 @@ void function(global, exports){
       return Class;
     }();
 
-
+    var Item = new Class({
+      constructor: function Item(key, value){
+        this.key = key;
+        this.value = value;
+      },
+      key: null,
+      value: null,
+      valueOf: function valueOf(){
+        return this.value;
+      }
+    });
 
     provide('WeakMap', function(wrap, unwrap){
 
