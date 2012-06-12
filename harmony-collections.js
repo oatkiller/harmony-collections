@@ -1,4 +1,4 @@
-void function(exports, global){
+void function(global, exports){
   "use strict";
   // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
   // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
@@ -160,7 +160,7 @@ void function(exports, global){
       }
     }
 
-    var assemble = function(){
+    var Class = function(){
       var code = 'return function toString(){ return "'+(Object+'').replace(/\n/g,'\\n').replace('Object', '"+this.name+"')+'" }',
           toString = { configurable: true,  writable: true,  value: new Function(code)()  },
           hidden = { enumerable: false };
@@ -183,22 +183,43 @@ void function(exports, global){
       }
 
       // assemble takes a prototype and prepares it for exporting as a class
-      return function assemble(proto){
-        var brand = '[object '+proto.constructor.name+']';
+      function Class(description){
+        this.proto = {};
 
-        proto.toString = function toString(){
-          return brand;
-        };
+        Object.keys(description).forEach(function(key){
+          if (typeof description[key] === 'function')
+            this.addMethod(key, description[key]);
+        }, this);
 
-        Object.keys(proto).forEach(function(key){
-          Object.defineProperty(proto, key, hidden);
-          if (typeof proto[key] === 'function')
-            nativeToString(proto[key]);
-        });
-
-        proto.constructor.prototype = proto;
-        return proto.constructor;
+        return this.ctor;
       }
+
+      Class.prototype.addMethod = function addMethod(name, method){
+        if (typeof name === 'function') {
+          method = name;
+          name = method.name;
+        }
+        Object.defineProperty(this.proto, name, {
+          value: method,
+          configurable: true,
+          writable: true
+        });
+        nativeToString(method);
+        if (name === 'constructor')
+          this.setConstructor(method);
+      }
+
+      Class.prototype.setConstructor = function setConstructor(ctor){
+        ctor.prototype = this.proto;
+        this.ctor = ctor;
+        var brand = this.brand = '[object ' + ctor.name + ']';
+        this.addMethod(function toString(){
+          return brand;
+        });
+        nativeToString(this.proto.toString);
+      }
+
+      return Class;
     }();
 
 
@@ -215,7 +236,7 @@ void function(exports, global){
        * @description Collection using objects with unique identities as keys that disallows enumeration
        *  and allows for better garbage collection.
        */
-      return assemble({
+      return new Class({
         constructor: function WeakMap(){
           if (!(this instanceof WeakMap))
             return new WeakMap;
@@ -320,7 +341,7 @@ void function(exports, global){
        * @class HashMap
        * @description Collection that only allows primitives to be keys.
        */
-      return assemble({
+      return new Class({
         constructor: function HashMap(){
           if (!(this instanceof HashMap))
             return new HashMap;
@@ -453,7 +474,7 @@ void function(exports, global){
        * @class Map
        * @description Collection that allows any kind of value to be a key.
        */
-      return assemble({
+      return new Class({
         constructor: function Map(){
           if (!(this instanceof Map))
             return new Map;
@@ -582,7 +603,7 @@ void function(exports, global){
        * @class        |Set|
        * @description  Collection of values that enforces uniqueness.
        **/
-      return assemble({
+      return new Class({
         constructor: function Set(){
           if (!(this instanceof Set))
             return new Set;
@@ -635,4 +656,4 @@ void function(exports, global){
       });
     });
   }();
-}(typeof exports === 'undefined' ? this : exports, new Function('return this')());
+}(new Function('return this')(), typeof exports === 'undefined' ? this : exports);
