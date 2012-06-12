@@ -4,7 +4,6 @@ void function(exports, global){
   // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
   // Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
 
-
   var FP = Function.prototype,
       callbind = FP.bind.bind(FP.call),
       hasOwn = callbind(Object.prototype.hasOwnProperty),
@@ -40,7 +39,7 @@ void function(exports, global){
 
   if (!('name' in FP)) {
     // patch IE's lack of name property on functions
-    !function(){
+    void function(){
       var toCode = callbind(FP.toString);
       Object.defineProperty(FP, 'name', {
         configurable: true,
@@ -142,13 +141,15 @@ void function(exports, global){
     return Locker;
   }();
 
-  !function(){
-    function Pair(key, value){
+  void function(){
+    function Item(key, value){
       this.key = key;
       this.value = value;
     }
 
-    Pair.prototype.valueOf = function valueOf(){
+    Item.prototype.key = null;
+    Item.prototype.value = null;
+    Item.prototype.valueOf = function valueOf(){
       return this.value;
     };
 
@@ -274,30 +275,61 @@ void function(exports, global){
 
 
 
-    provide('Hashmap', function(wrap, unwrap){
+    provide('HashMap', function(wrap, unwrap){
+      var STRING = 'string',
+          NUMBER = 'number',
+          OTHER = 'other';
+
+      var others = {
+        'false': false,
+        'true': true,
+        'null': null
+      };
+
+      function uncoerce(type, key){
+        switch (type) {
+          case STRING: return key;
+          case NUMBER: return +key;
+          case OTHER: return others[key];
+        }
+      }
 
       function validate(key){
-        if (key) {
-          var type = typeof key;
-          if (type === 'object' || type === 'function') {
-            if (typeof key.valueOf === 'function')
-              key = key.valueOf();
-            if (isObject(key))
-              throw new TypeError("Hashmap keys must have a primitive value");
+        if (key == null)
+          return OTHER;
+        else {
+          switch (typeof key) {
+            case 'string': return STRING;
+            case 'number': return NUMBER;
+            case 'boolean': return OTHER;
+            case 'function':
+            case 'object':
+              if (key instanceof String)
+                return STRING;
+              else if (key instanceof Number)
+                return NUMBER;
+              else if (key instanceof Boolean)
+                return OTHER;
+              else
+                throw new TypeError("HashMap keys must be primitive");
           }
         }
-        return String(key);
       }
 
       /**
-       * @class Hashmap
+       * @class HashMap
        * @description Collection that only allows primitives to be keys.
        */
       return assemble({
-        constructor: function Hashmap(){
-          if (!(this instanceof Hashmap))
-            return new Hashmap;
-          wrap(this, keystore());
+        constructor: function HashMap(){
+          if (!(this instanceof HashMap))
+            return new HashMap;
+
+          var types = keystore();
+          types.string = keystore();
+          types.number = keystore();
+          types.other = keystore();
+          wrap(this, types);
         },
         /**
          * @method       <get>
@@ -306,8 +338,7 @@ void function(exports, global){
          * @return       {Any}
          */
         get: function get(key){
-          key = validate(key);
-          return unwrap(this)[key];
+          return unwrap(this)[validate(key)][key];
         },
         /**
          * @method       <set>
@@ -317,8 +348,7 @@ void function(exports, global){
          * @return       {Any} returns value passed in
          **/
         set: function set(key, value){
-          key = validate(key);
-          return unwrap(this)[key] = value;
+          return unwrap(this)[validate(key)][key] = value;
         },
         /**
          * @method       <has>
@@ -327,8 +357,7 @@ void function(exports, global){
          * @return       {Boolean} is in collection
          **/
         has: function has(key){
-          key = validate(key);
-          return key in unwrap(this);
+          return key in unwrap(this)[validate(key)];
         },
         /**
          * @method       <delete>
@@ -337,8 +366,7 @@ void function(exports, global){
          * @return       {Boolean} true if item was in collection
          */
         delete: function delete_(key){
-          key = validate(key);
-          var hash = unwrap(this);
+          var hash = unwrap(this)[validate(key)];
           if (key in hash) {
             delete hash[key];
             return true;
@@ -351,7 +379,14 @@ void function(exports, global){
          * @return       {Array}
          **/
         keys: function keys(){
-          return Object.keys(unwrap(this));
+          var hash = unwrap(this);
+          var out = [];
+
+          for (var type in hash)
+            for (var key in hash[type])
+              out.push(uncoerce(type, key));
+
+          return out;
         },
         /**
          * @method       <values>
@@ -360,9 +395,26 @@ void function(exports, global){
          **/
         values: function values(){
           var hash = unwrap(this);
-          return Object.keys(hash).map(function(key){
-            return hash[key];
+          var out = [];
+
+          for (var type in hash)
+            for (var key in hash[type])
+              out.push(hash[type][key]);
+
+          return out;
+        },
+        /**
+         * @method       <items>
+         * @description  Returns an array containing key:value pairs
+         * @return       {Item[]}
+         **
+         **/
+        items: function items(){
+          var out = [];
+          this.iterate(function(value, key){
+            out.push(new Item(key, value));
           });
+          return out;
         },
         /**
          * @method       <iterate>
@@ -373,21 +425,10 @@ void function(exports, global){
         iterate: function iterate(callback, context){
           var hash = unwrap(this);
           context = isObject(context) ? context : global;
-          for (var k in hash)
-            callback.call(context, hash[k], k);
-        },
-        /**
-         * @method       <toArray>
-         * @description  Returns an array containing key:value pairs
-         * @return       {Pair[]}
-         **
-         **/
-        toArray: function toArray(){
-          var out = [];
-          this.iterate(function(value, key){
-            out.push(new Pair(key, value));
-          });
-          return out;
+
+          for (var type in hash)
+            for (var key in hash[type])
+              callback.call(context, hash[type][key], uncoerce(type, key), this);
         },
         /**
          * @method       <toObject>
@@ -418,7 +459,7 @@ void function(exports, global){
             return new Map;
 
           wrap(this, {
-            0: new exports.Hashmap,
+            0: new exports.HashMap,
             1: new exports.WeakMap,
             keys: [],
             values: []
@@ -502,6 +543,19 @@ void function(exports, global){
           return unwrap(this).values.slice();
         },
         /**
+         * @method       <items>
+         * @description  Returns an array containing key:value pairs
+         * @return       {Item[]}
+         **
+         **/
+        items: function items(){
+          var out = [];
+          this.iterate(function(value, key){
+            out.push(new Item(key, value));
+          });
+          return out;
+        },
+        /**
          * @method       <iterate>
          * @description  Loop through the collection raising callback for each
          * @param        {Function} callback  `callback(value, key|index)`
@@ -516,19 +570,6 @@ void function(exports, global){
 
           for (var i=0, len=keys.length; i < len; i++)
             callback.call(context, values[i], keys[i]);
-        },
-        /**
-         * @method       <toArray>
-         * @description  Returns an array containing key:value pairs
-         * @return       {Pair[]}
-         **
-         **/
-        toArray: function toArray(){
-          var out = [];
-          this.iterate(function(value, key){
-            out.push(new Pair(key, value));
-          });
-          return out;
         }
       });
     });
