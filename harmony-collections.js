@@ -686,7 +686,7 @@ void function(global, exports, undefined){
        * @param        {Object}   context    The `this` binding for callbacks, default null
        */
       iterate: function iterate(callback, context){
-        this.keys().forEach(callback, isObject(context) ? context : global);
+        unwrap(this).keys().forEach(callback, isObject(context) ? context : global);
       }
     });
   });
