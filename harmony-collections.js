@@ -93,9 +93,13 @@ void function(global, exports, undefined){
       enumerable: false,
       configurable: true,
       writable: true,
-      define: function define(object, fn){
+      define: function define(object, name, fn){
+        if (!fn && typeof name === 'function') {
+          fn = name;
+          name = fn.name;
+        }
         this.value = fn;
-        Object.defineProperty(object, fn.name, this);
+        Object.defineProperty(object, name.replace(/_$/, ''), this);
         nativeToString(fn);
         this.value = null;
       }
@@ -123,9 +127,10 @@ void function(global, exports, undefined){
       method = name;
       name = method.name;
     }
-    definer.define(this.proto, method)
     if (name === 'constructor')
       this.setConstructor(method);
+    else
+      definer.define(this.proto, method);
   };
 
   Class.prototype.setConstructor = function setConstructor(Ctor){
@@ -134,13 +139,14 @@ void function(global, exports, undefined){
 
     var brand = this.brand = '[object ' + Ctor.name + ']';
     this.addMethod(function toString(){ return brand });
+    definer.define(this.proto, 'constructor', Ctor);
   };
 
   var Locker = function(){
 
     // common per-object storage area made hidden by patching getOwnPropertyNames
-    var perObjectStorage = function()
-{      var ownNames = Object.getOwnPropertyNames;
+    var perObjectStorage = function(){
+      var ownNames = Object.getOwnPropertyNames;
       var globalUID = UID();
 
       definer.define(Object, function getOwnPropertyNames(obj){
