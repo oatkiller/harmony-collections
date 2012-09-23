@@ -1,18 +1,15 @@
 {
-  "author": "Brandon Benvie <brandon@bbenvie.com> (http://bbenvie.com)",
+  "author": "Brandon Benvie <http://bbenvie.com>",
   "name": "harmony-collections",
   "description": "Shim to provide Map, Set, and WeakMap if they're not available, with non-leaky O(1) lookup WeakMaps",
-  "keywords": ["harmony", "collection", "weakmap", "map", "set", "ecmascript", "shim", "garbage collection"],
-  "version": "0.3.1",
+  "keywords": ["harmony", "collection", "weakmap", "map", "set", "ecmascript", "shim", "garbage collection", ""],
+  "version": "0.3.2",
   "homepage": "https://github.com/Benvie/ES6-Harmony-Collections-Shim",
   "repository": {
     "type": "git",
     "url": "https://github.com/Benvie/ES6-Harmony-Collections-Shim"
   },
   "main": "harmony-collections.js",
-  "engines": {
-    "node": "0.6"
-  },
   "dependencies": {},
   "devDependencies": {
     "tap": "*"
