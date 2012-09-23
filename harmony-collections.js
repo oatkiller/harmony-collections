@@ -1,14 +1,30 @@
-void function(global, exports, undefined){
+/* (The MIT License)
+ *
+ * Copyright (c) 2012 Brandon Benvie <http://bbenvie.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files
+ * (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included with all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH
+ * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+// Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
+// Updated and bugfixed by Raynos @ https://gist.github.com/1638059
+// Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
+
+void function(Object, FP, global, exports, UNDEFINED, undefined){
   "use strict";
-  // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
-  // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
-  // Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
 
   var hasOwnProperty = Object.prototype.hasOwnProperty,
       defineProperty = Object.defineProperty,
-      create = Object.create,
-      FP = Function.prototype,
-      UNDEFINED = {};
+      create = Object.create;
 
 
   var define = function(o, k, v){
@@ -44,7 +60,7 @@ void function(global, exports, undefined){
   var Locker = (function(){
     var getProperties = Object.getOwnPropertyNames,
         lockboxDesc = { value: { writable: true, value: undefined } },
-        locker = '"use strict"; return function(key){ if (key === secret) return lockbox; }',
+        locker = '"use strict";return function(k){if(k===s)return l}',
         uids = create(null),
 
         createUID = function(){
@@ -87,7 +103,7 @@ void function(global, exports, undefined){
 
         var lockbox = create(null, lockboxDesc);
         defineProperty(store, puid, {
-          value: new Function('secret', 'lockbox', locker)(secret, lockbox)
+          value: new Function('s', 'l', locker)(secret, lockbox)
         });
         return lockbox;
       });
@@ -108,9 +124,9 @@ void function(global, exports, undefined){
   var exporter = (function(){
     var src = (''+Object).replace(/\n/g,'\\n').split('Object');
 
-    function toString(){
+    var toString = function toString(){
       return src[0] + this.name + src[1];
-    }
+    };
 
     define(toString, toString);
 
@@ -523,4 +539,4 @@ void function(global, exports, undefined){
       }
     ];
   });
-}(new Function('return this')(), typeof exports === 'undefined' ? this : exports);
+}(Object, Function.prototype, Function('return this')(), typeof exports === 'undefined' ? this : exports, {});
