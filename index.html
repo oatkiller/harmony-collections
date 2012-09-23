@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>ECMAScript 6 Collections Shim by Benvie</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>ECMAScript 6 Collections Shim</h1>
+        <p>Map, WeakMap, and Set implemented in JavaScript</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/Benvie/ES6-Harmony-Collections-Shim" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/Benvie/ES6-Harmony-Collections-Shim/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/Benvie/ES6-Harmony-Collections-Shim/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h1>ECMAScript 6 Collections Shim</h1>
+
+<p>Provides Map, Set, and WeakMap with the same usage as the new ES6 native versions. Values in Harmony Collections are not contained in the collection instance itself, like array items and object properties, but in a private store. It's not possible to get access to or inspect the store directly.</p>
+
+<p>For WeakMaps this means there's no way to find what's inside it or how many items are contained, and the only way to get a reference to a value is if you have a direct reference to the key object that links to it.</p>
+
+<h1>Compatability</h1>
+
+<p>Works with IE9+, Chrome, Firefox, Safari, untested in Opera.</p>
+
+<h1>Collections Usage</h1>
+
+<p>Maps, WeakMaps, Hashes, and Sets can each be created using their constructor with or without <code>new</code>. Examples:</p>
+
+<pre><code>var aWeakMap = new WeakMap;
+var aMap = Map();
+var aSet = new Set();
+</code></pre>
+
+<p>Items in a collection do not appear in any manner through traditional inspection. The only way to interact with the data contained in a collection is by using the functions below.</p>
+
+<pre><code>var aWeakMap = new WeakMap;
+aWeakMap.set(this, { secrets: 'Dark Secrets' });
+console.log(Object.getOwnPropertyNames(aWeakMap)); // []
+for (var k in aWeakMap) { console.log(k); }         // nothing
+console.log(aWeakMap.get(this));                    // { secrets: 'Dark Secrets' }
+</code></pre>
+
+<h1>WeakMap</h1>
+
+<p>WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are per WeakMap are unique and setting the same key will overwrite the old value. WeakMaps provide for no method of iteration or listing the keys or values contained inside. Because WeakMaps expose no method of listing keys or values, and keys are required to be full-fledged objects with unique identities, the only way to extract a value from it is by having a direct reference to the object used as the key.</p>
+
+<ul>
+<li>
+<strong>set</strong> <code>weakmap.set(key, value)</code>. Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.</li>
+<li>
+<strong>get</strong> <code>weakmap.get(key)</code>. Returns the value that key corresponds to the key or undefined.</li>
+<li>
+<strong>has</strong> <code>weakmap.has(key)</code>. Returns boolean.</li>
+<li>
+<strong>delete</strong> <code>weakmap.delete(key)</code>. Removes value from the WeakMap if found. Returns true.</li>
+</ul><p>WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.</p>
+
+<p><strong>All non-primitives</strong> are valid keys, including WeakMaps themselves.</p>
+
+<h1>Map</h1>
+
+<p>Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.</p>
+
+<ul>
+<li>
+<strong>set</strong> <code>map.set(key, value)</code>. Key is any value including objects. Returns undefined.</li>
+<li>
+<strong>get</strong> <code>map.get(key)</code>. Returns the value that key corresponds to or undefined.</li>
+<li>
+<strong>has</strong> <code>map.has(key)</code>. Returns boolean.</li>
+<li>
+<strong>delete</strong> <code>map.delete(key)</code>. Removes value from the Map if found. Returns true.</li>
+<li>
+<strong>forEach</strong> <code>map.forEach(callback, context)</code>. Loop through the collection raising callback for each.</li>
+<li>
+<strong>map</strong> <code>map.forEach(callback, context)</code>. Loop through the collection adding the return value for each to an array and returns it.</li>
+</ul><p><strong>All possible values</strong> are valid keys, including undefined, null, and NaN.</p>
+
+<h1>Hash</h1>
+
+<p>As an added bonus, Hash is also exported. This has the same API as a Map except it only accepts primitive keys.</p>
+
+<ul>
+<li>
+<strong>set</strong> <code>hash.set(key, value)</code>. Key must be primitive. Returns undefined.</li>
+<li>
+<strong>get</strong> <code>hash.get(key)</code>. Returns the value that key corresponds to or undefined.</li>
+<li>
+<strong>has</strong> <code>hash.has(key)</code>. Returns boolean.</li>
+<li>
+<strong>delete</strong> <code>hash.delete(key)</code>. Removes value from the Map if found. Returns true.</li>
+<li>
+<strong>forEach</strong> <code>map.forEach(callback, context)</code>. Loop through the collection raising callback for each.</li>
+<li>
+<strong>map</strong> <code>map.forEach(callback, context)</code>. Loop through the collection adding the return value for each to an array and returns it.</li>
+</ul><p><strong>Primitives</strong> are valid keys, specifically numbers and strings. All input values are coerced to strings so you can give it any value, but they will be converted to string keys.</p>
+
+<h1>Set</h1>
+
+<p>Sets are similar to arrays but enforce uniqueness of values. Adding the same value twice will only result in one being added to the set.</p>
+
+<ul>
+<li>
+<strong>add</strong> <code>set.add(value)</code>. Inserts a value of any type into the set if it's not already in the set.</li>
+<li>
+<strong>has</strong> <code>set.has(value)</code>. Returns boolean.</li>
+<li>
+<strong>delete</strong> <code>set.delete(value)</code>. Removes value from the Set if found. Returns true.</li>
+<li>
+<strong>forEach</strong> <code>map.forEach(callback, context)</code>. Loop through the collection raising callback for each.</li>
+<li>
+<strong>map</strong> <code>map.forEach(callback, context)</code>. Loop through the collection adding the return value for each to an array and returns it.</li>
+</ul>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/Benvie">Benvie</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
