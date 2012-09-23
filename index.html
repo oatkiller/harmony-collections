@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>ECMAScript 6 Collections Shim by Benvie</title>
+    <title>ES6 Collections Shim by Benvie</title>
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
@@ -17,19 +17,19 @@
   <body>
 
       <header>
-        <h1>ECMAScript 6 Collections Shim</h1>
+        <h1>ES6 Collections Shim</h1>
         <p>Map, WeakMap, and Set implemented in JavaScript</p>
       </header>
 
       <div id="banner">
         <span id="logo"></span>
 
-        <a href="https://github.com/Benvie/ES6-Harmony-Collections-Shim" class="button fork"><strong>View On GitHub</strong></a>
+        <a href="https://github.com/Benvie/es6-collections" class="button fork"><strong>View On GitHub</strong></a>
         <div class="downloads">
           <span>Downloads:</span>
           <ul>
-            <li><a href="https://github.com/Benvie/ES6-Harmony-Collections-Shim/zipball/master" class="button">ZIP</a></li>
-            <li><a href="https://github.com/Benvie/ES6-Harmony-Collections-Shim/tarball/master" class="button">TAR</a></li>
+            <li><a href="https://github.com/Benvie/es6-collections/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/Benvie/es6-collections/tarball/master" class="button">TAR</a></li>
           </ul>
         </div>
       </div><!-- end banner -->
@@ -39,11 +39,11 @@
         <ul></ul>
       </nav>
       <section>
-        <h1>ECMAScript 6 Collections Shim</h1>
+        <h1>ES6 Collections Shim</h1>
 
-<p>Provides Map, Set, and WeakMap with the same usage as the new ES6 native versions. Values in Harmony Collections are not contained in the collection instance itself, like array items and object properties, but in a private store. It's not possible to get access to or inspect the store directly.</p>
+<p>Provides Map, Set, and WeakMap with the same usage as the new natives ones from ES6. Values in these Collections are not contained in the collection instance itself, like array items and object properties, but in a separate storage location. It's not possible to get access to or inspect the store directly.</p>
 
-<p>For WeakMaps this means there's no way to find what's inside it or how many items are contained, and the only way to get a reference to a value is if you have a direct reference to the key object that links to it.</p>
+<p>For WeakMaps this means there's no way to find what's inside it or how many items are contained, and the only way to get a reference to a value is if you have a direct reference to the object used as the key.</p>
 
 <h1>Compatability</h1>
 
