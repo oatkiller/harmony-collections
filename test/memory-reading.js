@@ -9,7 +9,7 @@ module.exports = function memoryReading(name){
     delete readings[name];
     return result;
   } else {
-    readings[name] = new MemoryReading(name);
+    return readings[name] = new MemoryReading(name);
   }
 }
 

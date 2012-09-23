@@ -45,11 +45,15 @@ test('errors', function(t){
 });
 
 
-// test('garbage collection', function(t){
-//   memoryReading();
-//   for (var i=0; i < 100; i++) {
-//     new WM;
-//   }
-//   console.log(memoryReading());
-//   t.end();
-// });
+test('garbage collection', function(t){
+  var create = memoryReading('create');
+  for (var i=0; i < 1000; i++) {
+    var x = new WM;
+    x.set({}, {});
+  }
+  console.log(memoryReading('create'));
+  setTimeout(function(){
+    console.log(create.compare(memoryReading('create')));
+  }, 100);
+  t.end();
+});
