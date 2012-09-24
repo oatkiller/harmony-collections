@@ -6,6 +6,14 @@ Use the new __Map__, __Set__, and __WeakMap__ from the upcoming new ES standard 
 
 Works with IE9+, Chrome, Firefox, Safari, untested in Opera. __IE8 support has been recently added but is experimental.__
 
+# Install/Use
+
+If using node, install via:
+
+    npm install es-collections
+
+In the browser, include __es6-collection.js__ or __es6-collections.min.js__ and Map, WeakMap, Set, and HashMap will be exposed on the window. (you can also define `window.exports` which will cause them to end up there).
+
 # Overview
 
 ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in __O(1)__ time complexity.
