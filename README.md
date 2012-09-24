@@ -1,33 +1,85 @@
-# Harmony Collections Shim
+# ES6 Collections Shim
 
-Provides Map, Set, and WeakMap with the same usage as the new ES6 native versions. Values in Harmony Collections are not contained in the collection instance itself, like array items and object properties, but in a private store. It's not possible to get access to or inspect the store directly.
-
-For WeakMaps this means there's no way to find what's inside it or how many items are contained, and the only way to get a reference to a value is if you have a direct reference to the key object that links to it.
+Use the new __Map__, __Set__, and __WeakMap__ from the upcoming new ES standard right now! This shim provides full functionality for these collections and delivers the benefits of using them.
 
 # Compatability
 
-Works with IE9+, Chrome, Firefox, Safari, untested in Opera.
+Works with IE9+, Chrome, Firefox, Safari, untested in Opera. __IE8 support has been recently added but is experimental.__
 
-# Collections Usage
+# Overview
 
-Maps, WeakMaps, Hashes, and Sets can each be created using their constructor with or without `new`. Examples:
+ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in __O(1)__ time complexity.
 
-    var aWeakMap = new WeakMap;
-    var aMap = Map();
-    var aSet = new Set();
+## WeakMap Garbage Collection Semantics
 
-Items in a collection do not appear in any manner through traditional inspection. The only way to interact with the data contained in a collection is by using the functions below.
+The benefit of using WeakMaps is enhanced garbage collection. In a WeakMap, the only reference created is key -> value, so it's possible for a key/value in a WeakMap to be garbage collected while the WeakMap they're in still exists! Compare this to an Array, where all items in the Array will not be garbage collected as long as the Array isn't. This forces either explicitly management of the object lifespans, or more commonly is simply a memory leak.
 
-    var aWeakMap = new WeakMap;
-    aWeakMap.set(this, { secrets: 'Dark Secrets' });
-    console.log(Object.getOwnPropertyNames(aWeakMap)); // []
-    for (var k in aWeakMap) { console.log(k); }         // nothing
-    console.log(aWeakMap.get(this));                    // { secrets: 'Dark Secrets' }
+For example, data stored using jQuery.data can never be garbage collected unless explicitly nulled out, because it is stored in a container that strongly references it. Using a WeakMap, it's possible to associate data with an element and have the data destroyed when the element is without memory leaking the element, i.e. `weakmap.set(element, { myData: 'gc safe!' })`. jQuery.data (every library has similar functionality) prevent the element from memory leaking by using a numeric id, but this does nothing for the __data__ that is stored.
 
+# Detailed Examples
+
+### Map/WeakMap
+Retire jQuery.data and similar, consider it replaced with prejudice.
+
+```javascript
+// reusable storage creator for making as many separate stores as needed
+function createStorage(){
+  var store = new WeakMap;
+  return function(o){
+    var v = store.get(o);
+    if (!v) store.set(o, v = {});
+    return v;
+  };
+}
+
+// now we can create private/namespaced properties associated with objects
+var _ = createStorage();
+
+functioon Wrapper(element){
+  var _element = _(element);
+  if (_element.wrapper)
+    return _element.wrapper;
+
+  _element.wrapper = this;
+  _(this).element = element;
+}
+
+Wrapper.prototype = {
+  get classes(){
+    return [].slice.call(_(this).element);
+  },
+  set classes(v){
+    _(this).element.className = [].concat(v).join(' ');
+  }
+};
+```
+
+### Set
+A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is __O(1)__ but __O(n)__ for an Array. An example of where this is useful is in implementing `Array.prototype.unique`.
+
+```javascript
+function uniqueUsingIndexOf(array){
+  return array.filter(function(item, index){
+    return array.lastIndexOf(item) > index;
+  });
+}
+
+function uniqueUsingSet(array){
+  var seen = new Set;
+  return array.filter(function(item){
+    if (!seen.has(item)) {
+      seen.add(item);
+      return true;
+    }
+  });
+}
+```
+
+Both will output the same result, however the version using the set is __O(n)__ and the one using indexOf is __O(n^2)__. For an array taking 30 seconds using the set, an __*hour*__ is required for indexOf.
 
 # WeakMap
 
-WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are per WeakMap are unique and setting the same key will overwrite the old value. WeakMaps provide for no method of iteration or listing the keys or values contained inside. Because WeakMaps expose no method of listing keys or values, and keys are required to be full-fledged objects with unique identities, the only way to extract a value from it is by having a direct reference to the object used as the key.
+WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are unique per WeakMap; setting the same key will overwrite the old value. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.
 
 * __set__ `weakmap.set(key, value)`. Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.
 * __get__ `weakmap.get(key)`. Returns the value that key corresponds to the key or undefined.
@@ -36,7 +88,21 @@ WeakMaps require the use of objects as keys; primitives are not valid keys. Keys
 
 WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
 
-__All non-primitives__ are valid keys, including WeakMaps themselves.
+__Non-primitives__ are valid keys. Objects, functions, DOM nodes, etc.
+
+
+# HashMap
+
+Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.
+
+* __set__ `hashmap.set(key, value)`. Key must be primitive. Returns undefined.
+* __get__ `hashmap.get(key)`. Returns the value that key corresponds to or undefined.
+* __has__ `hashmap.has(key)`. Returns boolean.
+* __delete__ `hashmap.delete(key)`. Removes value from the collection if found. Returns true.
+* __forEach__ `hashmap.forEach(callback, context)`. Loop through the collection raising callback for each.
+* __map__ `hashmap.map(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
+
+__Primitives__ are valid keys. Exact value is used, so `500` is different from `"500"`, `-0` is different from `0`, ``"false"` isn't `false`, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).
 
 
 # Map
@@ -48,34 +114,21 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __has__ `map.has(key)`. Returns boolean.
 * __delete__ `map.delete(key)`. Removes value from the collection if found. Returns true.
 * __forEach__ `map.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `map.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
+* __map__ `map.map(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
 
-__All possible values__ are valid keys, including undefined, null, and NaN.
+__All possible values__ are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.
 
-
-# HashMap
-
-As an added bonus, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys.
-
-* __set__ `hashmap.set(key, value)`. Key must be primitive. Returns undefined.
-* __get__ `hashmap.get(key)`. Returns the value that key corresponds to or undefined.
-* __has__ `hashmap.has(key)`. Returns boolean.
-* __delete__ `hashmap.delete(key)`. Removes value from the collection if found. Returns true.
-* __forEach__ `hashmap.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `hashmap.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
-
-__Primitives__ are valid keys, specifically numbers and strings. All input values are coerced to strings so you can give it any value, but they will be converted to string keys.
 
 
 # Set
 
-Sets are similar to arrays but enforce uniqueness of values. Adding the same value twice will only result in one being added to the set.
+Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.
 
 * __add__ `set.add(value)`. Inserts a value of any type into the set if it's not already in the set.
 * __has__ `set.has(value)`. Returns boolean.
 * __delete__ `set.delete(value)`. Removes value from the collection if found. Returns true.
 * __forEach__ `set.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `set.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
+* __map__ `set.map(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
 
 
 
