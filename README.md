@@ -16,7 +16,7 @@ In the browser, include __harmony-collection.js__ or __harmony-collections.min.j
 
 ## Overview
 
-ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in __O(1)__ time complexity.
+ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in `O(1)` time complexity.
 
 ### WeakMap Garbage Collection Semantics
 
@@ -63,7 +63,9 @@ Wrapper.prototype = {
 ```
 
 ### Set
-A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is __O(1)__ but __O(n)__ for an Array. An example of where this is useful is in implementing `Array.prototype.unique`.
+A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is `O(1)` but `O(n)` for an Array. An example of where this is useful is in implementing `Array.prototype.unique`.
+
+Both of the following will output the same result, however the Set version is `O(n)` and the one using indexOf is `O(n^2)`. For an array taking 30 seconds using the set, an __*hour*__ is required for indexOf.
 
 ```javascript
 function uniqueUsingIndexOf(array){
@@ -83,63 +85,58 @@ function uniqueUsingSet(array){
 }
 ```
 
-Both will output the same result, however the version using the set is __O(n)__ and the one using indexOf is __O(n^2)__. For an array taking 30 seconds using the set, an __*hour*__ is required for indexOf.
 
 ## API Reference
 
 ### WeakMap
 
-WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are unique per WeakMap; setting the same key will overwrite the old value. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.
-
-* __set__ `weakmap.set(key, value)`. Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.
-* __get__ `weakmap.get(key)`. Returns the value that key corresponds to the key or undefined.
-* __has__ `weakmap.has(key)`. Returns boolean.
-* __delete__ `weakmap.delete(key)`. Removes value from the collection if found. Returns true.
-
-WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
-
 __Non-primitives__ are valid keys. Objects, functions, DOM nodes, etc.
+
+WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.
+
+* `WeakMap#set(key, value)` Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.
+* `WeakMap#get(key)` Returns the value that key corresponds to the key or undefined.
+* `WeakMap#has(key)` Returns boolean.
+* `WeakMap#delete(key)` Removes value from the collection if found. Returns true.
 
 
 ### HashMap
 
+__Primitives__ are valid keys. Exact value is used, so `500` is different from `"500"`, `-0` is different from `0`, ``"false"` isn't `false`, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).
+
 Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.
 
-* __set__ `hashmap.set(key, value)`. Key must be primitive. Returns undefined.
-* __get__ `hashmap.get(key)`. Returns the value that key corresponds to or undefined.
-* __has__ `hashmap.has(key)`. Returns boolean.
-* __delete__ `hashmap.delete(key)`. Removes value from the collection if found. Returns true.
-* __forEach__ `hashmap.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `hashmap.map(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
-
-__Primitives__ are valid keys. Exact value is used, so `500` is different from `"500"`, `-0` is different from `0`, ``"false"` isn't `false`, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).
+* `HashMap#set(key, value)` Key must be primitive. Returns undefined.
+* `HashMap#get(key)` Returns the value that key corresponds to or undefined.
+* `HashMap#has(key)` Returns boolean.
+* `HashMap#delete(key)` Removes value from the collection if found. Returns true.
+* `HashMap#forEach(callback, context)` Loop through the collection raising callback for each.
+* `HashMap#map(callback, context)` Loop through the collection adding the return value for each to an array and returns it.
 
 
 ### Map
 
-Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.
-
-* __set__ `map.set(key, value)`. Key is any value including objects. Returns undefined.
-* __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
-* __has__ `map.has(key)`. Returns boolean.
-* __delete__ `map.delete(key)`. Removes value from the collection if found. Returns true.
-* __forEach__ `map.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `map.map(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
-
 __All possible values__ are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.
 
+Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.
+
+* `Map#set(key, value)` Key is any value including objects. Returns undefined.
+* `Map#get(key)` Returns the value that key corresponds to or undefined.
+* `Map#has(key)` Returns boolean.
+* `Map#delete(key)` Removes value from the collection if found. Returns true.
+* `Map#forEach(callback, context)` Loop through the collection raising callback for each.
+* `Map#map(callback, context)` Loop through the collection adding the return value for each to an array and returns it.
 
 
 ### Set
 
 Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.
 
-* __add__ `set.add(value)`. Inserts a value of any type into the set if it's not already in the set.
-* __has__ `set.has(value)`. Returns boolean.
-* __delete__ `set.delete(value)`. Removes value from the collection if found. Returns true.
-* __forEach__ `set.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `set.map(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
-
+* `Set#add(value)` Inserts a value of any type into the set if it's not already in the set.
+* `Set#has(value)` Returns boolean.
+* `Set#delete(value)` Removes value from the collection if found. Returns true.
+* `Set#forEach(callback, context)` Loop through the collection raising callback for each.
+* `Set#map(callback, context)` Loop through the collection adding the return value for each to an array and returns it.
 
 
 
