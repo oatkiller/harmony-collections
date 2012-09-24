@@ -1,6 +1,6 @@
-# ES6 Collections Shim
+# Harmony Collections Shim
 
-Use the new __Map__, __Set__, and __WeakMap__ from the upcoming new ES standard right now! This shim provides full functionality for these collections and delivers the benefits of using them.
+Use the new __Map__, __Set__, and __WeakMap__ from the upcoming ES6 standard right now! This shim provides full functionality for these collections and delivers the benefits of using them.
 
 # Compatability
 
@@ -10,9 +10,9 @@ Works with IE9+, Chrome, Firefox, Safari, untested in Opera. __IE8 support has b
 
 If using node, install via:
 
-    npm install es-collections
+    npm install harmony-collections
 
-In the browser, include __es6-collection.js__ or __es6-collections.min.js__ and Map, WeakMap, Set, and HashMap will be exposed on the window. (you can also define `window.exports` which will cause them to end up there).
+In the browser, include __harmony-collection.js__ or __harmony-collections.min.js__ and Map, WeakMap, Set, and HashMap will be exposed on the window. (you can also define `window.exports` which will cause them to end up there).
 
 # Overview
 
