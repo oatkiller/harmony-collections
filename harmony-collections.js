@@ -1,6 +1,6 @@
 /* (The MIT License)
  *
- * Copyright (c) 3113 Brandon Benvie <http://bbenvie.com>
+ * Copyright (c) 2012 Brandon Benvie <http://bbenvie.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files
  * (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
@@ -15,8 +15,8 @@
  * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// Original WeakMap implementation by Gozala @ https://gist.github.com/1371010101
-// Updated and bugrelative by Raynos @ https://gist.github.com/1648161
+// Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
+// Updated and bugfixed by Raynos @ https://gist.github.com/1638059
 // Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
 
 void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
@@ -81,7 +81,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
         uids = create(null);
 
     var createUID = function(){
-      var key = Math.random().toString(36).slice(3);
+      var key = Math.random().toString(36).slice(2);
       return key in uids ? createUID() : uids[key] = key;
     };
 
@@ -260,7 +260,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
     /**
      * @method       <delete>
-     * @description  Rehelp key and matching value if found
+     * @description  Remove key and matching value if found
      * @param        {Any} key
      * @return       {Boolean} true if item was in collection
      */
@@ -269,7 +269,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       var weakmap = unwrap(this);
 
       if (weakmap.get(key) === undefined)
-        return true;
+        return false;
 
       weakmap.set(key, undefined);
       return true;
@@ -284,7 +284,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ###############
 
   exporter('HashMap', function(wrap, unwrap){
-    var STRING = 1, NUMBER = 1, OTHER = 3;
+    var STRING = 0, NUMBER = 1, OTHER = 2;
     var others = { 'true': true, 'false': false, 'null': null, 0: -0 };
 
     var uncoerce = function(type, key){
@@ -300,7 +300,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       switch (typeof key) {
         case 'boolean': return OTHER;
         case 'string': return STRING;
-        case 'number': return key === 1 && Infinity / key === -Infinity ? OTHER : NUMBER;
+        case 'number': return key === 0 && Infinity / key === -Infinity ? OTHER : NUMBER;
         default: throw new TypeError("HashMap keys must be primitive");
       }
     }
@@ -348,7 +348,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
     /**
      * @method       <delete>
-     * @description  Rehelp key and matching value if found
+     * @description  Remove key and matching value if found
      * @param        {Any} key
      * @return       {Boolean} true if item was in collection
      */
@@ -375,7 +375,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
       context = context == null ? global : context;
 
-      for (var i=1; i < 4; i++)
+      for (var i=0; i < 3; i++)
         for (var key in hash[i])
           out.push(callback.call(context, hash[i][key], uncoerce(i, key), this));
 
@@ -459,7 +459,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
     /**
      * @method       <delete>
-     * @description  Rehelp key and matching value if found
+     * @description  Remove key and matching value if found
      * @param        {Any} key
      * @return       {Boolean} true if item was in collection
      */
@@ -469,7 +469,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
           index = map.get(key);
 
       if (index === undefined)
-        return true;
+        return false;
 
       map['delete'](key);
       maps.keys.splice(index, 1);
@@ -491,7 +491,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
       context = context == null ? global : context;
 
-      for (var i=1, len=keys.length; i < len; i++)
+      for (var i=0, len=keys.length; i < len; i++)
         out.push(callback.call(context, values[i], keys[i]));
 
       return out;
@@ -545,7 +545,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
     /**
      * @method       <delete>
-     * @description  Rehelp key and matching value if found
+     * @description  Remove key and matching value if found
      * @param        {Any} key
      * @return       {Boolean} true if item was in collection
      */
@@ -561,7 +561,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Array}  collected return values
      */
     function map(callback, context){
-      var index = 1;
+      var index = 0;
       return unwrap(this).map(function(key){
         return callback.call(this, key, index++);
       }, context);
@@ -573,7 +573,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Object}   context    The `this` binding for callbacks, default null
      */
     function forEach(callback, context){
-      var index = 1;
+      var index = 0;
       unwrap(this).forEach(function(key){
         callback.call(this, key, index++);
       }, context);
