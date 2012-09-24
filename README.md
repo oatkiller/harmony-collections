@@ -32,7 +32,7 @@ WeakMaps require the use of objects as keys; primitives are not valid keys. Keys
 * __set__ `weakmap.set(key, value)`. Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.
 * __get__ `weakmap.get(key)`. Returns the value that key corresponds to the key or undefined.
 * __has__ `weakmap.has(key)`. Returns boolean.
-* __delete__ `weakmap.delete(key)`. Removes value from the WeakMap if found. Returns true.
+* __delete__ `weakmap.delete(key)`. Removes value from the collection if found. Returns true.
 
 WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.
 
@@ -46,23 +46,23 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 * __set__ `map.set(key, value)`. Key is any value including objects. Returns undefined.
 * __get__ `map.get(key)`. Returns the value that key corresponds to or undefined.
 * __has__ `map.has(key)`. Returns boolean.
-* __delete__ `map.delete(key)`. Removes value from the Map if found. Returns true.
+* __delete__ `map.delete(key)`. Removes value from the collection if found. Returns true.
 * __forEach__ `map.forEach(callback, context)`. Loop through the collection raising callback for each.
 * __map__ `map.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
 
 __All possible values__ are valid keys, including undefined, null, and NaN.
 
 
-# Hash
+# HashMap
 
-As an added bonus, Hash is also exported. This has the same API as a Map except it only accepts primitive keys.
+As an added bonus, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys.
 
-* __set__ `hash.set(key, value)`. Key must be primitive. Returns undefined.
-* __get__ `hash.get(key)`. Returns the value that key corresponds to or undefined.
-* __has__ `hash.has(key)`. Returns boolean.
-* __delete__ `hash.delete(key)`. Removes value from the Map if found. Returns true.
-* __forEach__ `map.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `map.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
+* __set__ `hashmap.set(key, value)`. Key must be primitive. Returns undefined.
+* __get__ `hashmap.get(key)`. Returns the value that key corresponds to or undefined.
+* __has__ `hashmap.has(key)`. Returns boolean.
+* __delete__ `hashmap.delete(key)`. Removes value from the collection if found. Returns true.
+* __forEach__ `hashmap.forEach(callback, context)`. Loop through the collection raising callback for each.
+* __map__ `hashmap.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
 
 __Primitives__ are valid keys, specifically numbers and strings. All input values are coerced to strings so you can give it any value, but they will be converted to string keys.
 
@@ -73,9 +73,9 @@ Sets are similar to arrays but enforce uniqueness of values. Adding the same val
 
 * __add__ `set.add(value)`. Inserts a value of any type into the set if it's not already in the set.
 * __has__ `set.has(value)`. Returns boolean.
-* __delete__ `set.delete(value)`. Removes value from the Set if found. Returns true.
-* __forEach__ `map.forEach(callback, context)`. Loop through the collection raising callback for each.
-* __map__ `map.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
+* __delete__ `set.delete(value)`. Removes value from the collection if found. Returns true.
+* __forEach__ `set.forEach(callback, context)`. Loop through the collection raising callback for each.
+* __map__ `set.forEach(callback, context)`. Loop through the collection adding the return value for each to an array and returns it.
 
 
 
