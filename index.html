@@ -43,11 +43,11 @@
 
 <p>Use the new <strong>Map</strong>, <strong>Set</strong>, and <strong>WeakMap</strong> from the upcoming ES6 standard right now! This shim provides full functionality for these collections and delivers the benefits of using them.</p>
 
-<h1>Compatability</h1>
+<h2>Compatability</h2>
 
 <p>Works with IE9+, Chrome, Firefox, Safari, untested in Opera. <strong>IE8 support has been recently added but is experimental.</strong></p>
 
-<h1>Install/Use</h1>
+<h2>Install/Use</h2>
 
 <p>If using node, install via:</p>
 
@@ -56,17 +56,17 @@
 
 <p>In the browser, include <strong>harmony-collection.js</strong> or <strong>harmony-collections.min.js</strong> and Map, WeakMap, Set, and HashMap will be exposed on the window. (you can also define <code>window.exports</code> which will cause them to end up there).</p>
 
-<h1>Overview</h1>
+<h2>Overview</h2>
 
-<p>ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in <strong>O(1)</strong> time complexity.</p>
+<p>ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in <code>O(1)</code> time complexity.</p>
 
-<h2>WeakMap Garbage Collection Semantics</h2>
+<h3>WeakMap Garbage Collection Semantics</h3>
 
 <p>The benefit of using WeakMaps is enhanced garbage collection. In a WeakMap, the only reference created is key -&gt; value, so it's possible for a key/value in a WeakMap to be garbage collected while the WeakMap they're in still exists! Compare this to an Array, where all items in the Array will not be garbage collected as long as the Array isn't. This forces either explicitly management of the object lifespans, or more commonly is simply a memory leak.</p>
 
 <p>For example, data stored using jQuery.data can never be garbage collected unless explicitly nulled out, because it is stored in a container that strongly references it. Using a WeakMap, it's possible to associate data with an element and have the data destroyed when the element is without memory leaking the element, i.e. <code>weakmap.set(element, { myData: 'gc safe!' })</code>. jQuery.data (every library has similar functionality) prevent the element from memory leaking by using a numeric id, but this does nothing for the <strong>data</strong> that is stored.</p>
 
-<h1>Detailed Examples</h1>
+<h2>Detailed Examples</h2>
 
 <h3>Map/WeakMap</h3>
 
@@ -106,7 +106,9 @@
 
 <h3>Set</h3>
 
-<p>A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is <strong>O(1)</strong> but <strong>O(n)</strong> for an Array. An example of where this is useful is in implementing <code>Array.prototype.unique</code>.</p>
+<p>A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is <code>O(1)</code> but <code>O(n)</code> for an Array. An example of where this is useful is in implementing <code>Array.prototype.unique</code>.</p>
+
+<p>Both of the following will output the same result, however the Set version is <code>O(n)</code> and the one using indexOf is <code>O(n^2)</code>. For an array taking 30 seconds using the set, an <strong><em>hour</em></strong> is required for indexOf.</p>
 
 <div class="highlight"><pre><span class="kd">function</span> <span class="nx">uniqueUsingIndexOf</span><span class="p">(</span><span class="nx">array</span><span class="p">){</span>
   <span class="k">return</span> <span class="nx">array</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">item</span><span class="p">,</span> <span class="nx">index</span><span class="p">){</span>
@@ -125,78 +127,76 @@
 <span class="p">}</span>
 </pre></div>
 
-<p>Both will output the same result, however the version using the set is <strong>O(n)</strong> and the one using indexOf is <strong>O(n^2)</strong>. For an array taking 30 seconds using the set, an <strong><em>hour</em></strong> is required for indexOf.</p>
+<h2>API Reference</h2>
 
-<h1>WeakMap</h1>
-
-<p>WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are unique per WeakMap; setting the same key will overwrite the old value. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.</p>
-
-<ul>
-<li>
-<strong>set</strong> <code>weakmap.set(key, value)</code>. Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.</li>
-<li>
-<strong>get</strong> <code>weakmap.get(key)</code>. Returns the value that key corresponds to the key or undefined.</li>
-<li>
-<strong>has</strong> <code>weakmap.has(key)</code>. Returns boolean.</li>
-<li>
-<strong>delete</strong> <code>weakmap.delete(key)</code>. Removes value from the collection if found. Returns true.</li>
-</ul><p>WeakMaps allow for some interesting use cases like anonymous communication channels where neither side can identify the other, and no one else can eavesdrop. By using using a target object as its own key to retrieve a hidden seceret value no information about the origin can be obtained.</p>
+<h3>WeakMap</h3>
 
 <p><strong>Non-primitives</strong> are valid keys. Objects, functions, DOM nodes, etc.</p>
 
-<h1>HashMap</h1>
+<p>WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.</p>
+
+<ul>
+<li>
+<code>WeakMap#set(key, value)</code> Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.</li>
+<li>
+<code>WeakMap#get(key)</code> Returns the value that key corresponds to the key or undefined.</li>
+<li>
+<code>WeakMap#has(key)</code> Returns boolean.</li>
+<li>
+<code>WeakMap#delete(key)</code> Removes value from the collection if found. Returns true.</li>
+</ul><h3>HashMap</h3>
+
+<p><strong>Primitives</strong> are valid keys. Exact value is used, so <code>500</code> is different from <code>"500"</code>, <code>-0</code> is different from <code>0</code>, `<code>"false"</code> isn't <code>false</code>, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).</p>
 
 <p>Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.</p>
 
 <ul>
 <li>
-<strong>set</strong> <code>hashmap.set(key, value)</code>. Key must be primitive. Returns undefined.</li>
+<code>HashMap#set(key, value)</code> Key must be primitive. Returns undefined.</li>
 <li>
-<strong>get</strong> <code>hashmap.get(key)</code>. Returns the value that key corresponds to or undefined.</li>
+<code>HashMap#get(key)</code> Returns the value that key corresponds to or undefined.</li>
 <li>
-<strong>has</strong> <code>hashmap.has(key)</code>. Returns boolean.</li>
+<code>HashMap#has(key)</code> Returns boolean.</li>
 <li>
-<strong>delete</strong> <code>hashmap.delete(key)</code>. Removes value from the collection if found. Returns true.</li>
+<code>HashMap#delete(key)</code> Removes value from the collection if found. Returns true.</li>
 <li>
-<strong>forEach</strong> <code>hashmap.forEach(callback, context)</code>. Loop through the collection raising callback for each.</li>
+<code>HashMap#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 <li>
-<strong>map</strong> <code>hashmap.map(callback, context)</code>. Loop through the collection adding the return value for each to an array and returns it.</li>
-</ul><p><strong>Primitives</strong> are valid keys. Exact value is used, so <code>500</code> is different from <code>"500"</code>, <code>-0</code> is different from <code>0</code>, `<code>"false"</code> isn't <code>false</code>, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).</p>
+<code>HashMap#map(callback, context)</code> Loop through the collection adding the return value for each to an array and returns it.</li>
+</ul><h3>Map</h3>
 
-<h1>Map</h1>
+<p><strong>All possible values</strong> are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.</p>
 
 <p>Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.</p>
 
 <ul>
 <li>
-<strong>set</strong> <code>map.set(key, value)</code>. Key is any value including objects. Returns undefined.</li>
+<code>Map#set(key, value)</code> Key is any value including objects. Returns undefined.</li>
 <li>
-<strong>get</strong> <code>map.get(key)</code>. Returns the value that key corresponds to or undefined.</li>
+<code>Map#get(key)</code> Returns the value that key corresponds to or undefined.</li>
 <li>
-<strong>has</strong> <code>map.has(key)</code>. Returns boolean.</li>
+<code>Map#has(key)</code> Returns boolean.</li>
 <li>
-<strong>delete</strong> <code>map.delete(key)</code>. Removes value from the collection if found. Returns true.</li>
+<code>Map#delete(key)</code> Removes value from the collection if found. Returns true.</li>
 <li>
-<strong>forEach</strong> <code>map.forEach(callback, context)</code>. Loop through the collection raising callback for each.</li>
+<code>Map#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 <li>
-<strong>map</strong> <code>map.map(callback, context)</code>. Loop through the collection adding the return value for each to an array and returns it.</li>
-</ul><p><strong>All possible values</strong> are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.</p>
-
-<h1>Set</h1>
+<code>Map#map(callback, context)</code> Loop through the collection adding the return value for each to an array and returns it.</li>
+</ul><h3>Set</h3>
 
 <p>Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.</p>
 
 <ul>
 <li>
-<strong>add</strong> <code>set.add(value)</code>. Inserts a value of any type into the set if it's not already in the set.</li>
+<code>Set#add(value)</code> Inserts a value of any type into the set if it's not already in the set.</li>
 <li>
-<strong>has</strong> <code>set.has(value)</code>. Returns boolean.</li>
+<code>Set#has(value)</code> Returns boolean.</li>
 <li>
-<strong>delete</strong> <code>set.delete(value)</code>. Removes value from the collection if found. Returns true.</li>
+<code>Set#delete(value)</code> Removes value from the collection if found. Returns true.</li>
 <li>
-<strong>forEach</strong> <code>set.forEach(callback, context)</code>. Loop through the collection raising callback for each.</li>
+<code>Set#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 <li>
-<strong>map</strong> <code>set.map(callback, context)</code>. Loop through the collection adding the return value for each to an array and returns it.</li>
+<code>Set#map(callback, context)</code> Loop through the collection adding the return value for each to an array and returns it.</li>
 </ul><h2>License</h2>
 
 <p>(The MIT License)
