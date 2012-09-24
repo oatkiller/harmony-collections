@@ -2,11 +2,11 @@
 
 Use the new __Map__, __Set__, and __WeakMap__ from the upcoming ES6 standard right now! This shim provides full functionality for these collections and delivers the benefits of using them.
 
-# Compatability
+## Compatability
 
 Works with IE9+, Chrome, Firefox, Safari, untested in Opera. __IE8 support has been recently added but is experimental.__
 
-# Install/Use
+## Install/Use
 
 If using node, install via:
 
@@ -14,17 +14,17 @@ If using node, install via:
 
 In the browser, include __harmony-collection.js__ or __harmony-collections.min.js__ and Map, WeakMap, Set, and HashMap will be exposed on the window. (you can also define `window.exports` which will cause them to end up there).
 
-# Overview
+## Overview
 
 ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. This allows you to do the following awesome things: store private data "on" public objects, private properties, secretly "tag" objects, namespace properties, access controlled properties, check object uniqueness in __O(1)__ time complexity.
 
-## WeakMap Garbage Collection Semantics
+### WeakMap Garbage Collection Semantics
 
 The benefit of using WeakMaps is enhanced garbage collection. In a WeakMap, the only reference created is key -> value, so it's possible for a key/value in a WeakMap to be garbage collected while the WeakMap they're in still exists! Compare this to an Array, where all items in the Array will not be garbage collected as long as the Array isn't. This forces either explicitly management of the object lifespans, or more commonly is simply a memory leak.
 
 For example, data stored using jQuery.data can never be garbage collected unless explicitly nulled out, because it is stored in a container that strongly references it. Using a WeakMap, it's possible to associate data with an element and have the data destroyed when the element is without memory leaking the element, i.e. `weakmap.set(element, { myData: 'gc safe!' })`. jQuery.data (every library has similar functionality) prevent the element from memory leaking by using a numeric id, but this does nothing for the __data__ that is stored.
 
-# Detailed Examples
+## Detailed Examples
 
 ### Map/WeakMap
 Retire jQuery.data and similar, consider it replaced with prejudice.
@@ -85,7 +85,9 @@ function uniqueUsingSet(array){
 
 Both will output the same result, however the version using the set is __O(n)__ and the one using indexOf is __O(n^2)__. For an array taking 30 seconds using the set, an __*hour*__ is required for indexOf.
 
-# WeakMap
+## API Reference
+
+### WeakMap
 
 WeakMaps require the use of objects as keys; primitives are not valid keys. Keys are unique per WeakMap; setting the same key will overwrite the old value. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.
 
@@ -99,7 +101,7 @@ WeakMaps allow for some interesting use cases like anonymous communication chann
 __Non-primitives__ are valid keys. Objects, functions, DOM nodes, etc.
 
 
-# HashMap
+### HashMap
 
 Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.
 
@@ -113,7 +115,7 @@ Though not part of ES6, HashMap is also exported. This has the same API as a Map
 __Primitives__ are valid keys. Exact value is used, so `500` is different from `"500"`, `-0` is different from `0`, ``"false"` isn't `false`, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).
 
 
-# Map
+### Map
 
 Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.
 
@@ -128,7 +130,7 @@ __All possible values__ are valid keys, including -0, undefined, null, and NaN. 
 
 
 
-# Set
+### Set
 
 Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.
 
