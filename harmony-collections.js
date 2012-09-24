@@ -17,7 +17,7 @@
 
 // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
 // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
-// Expanded by Benvie @ https://github.com/Benvie/ES6-Harmony-Collections-Shim
+// Expanded by Benvie @ https://github.com/Benvie/harmony-collections
 
 void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   "use strict";
