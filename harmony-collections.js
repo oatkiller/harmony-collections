@@ -2,17 +2,20 @@
  *
  * Copyright (c) 2012 Brandon Benvie <http://bbenvie.com>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files
- * (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the 'Software'), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included with all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included with all copies or
+ * substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH
- * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+ * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY  CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 // Original WeakMap implementation by Gozala @ https://gist.github.com/1269991
@@ -68,6 +71,27 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
     return FP[TOSTRING].call(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
   };
+
+  var iterate = function(iterable, callback, context){
+    context = context || iterable;
+    if (iterable !== null && typeof iterable === 'object') {
+      if (iterable instanceof Array) {
+        for (var i=0; i < iterable.length; i++) {
+          if (iterable[i] instanceof Array && iterable[i].length === 2)
+            callback.call(context, iterable[i][0], iterable[i][1]);
+          else
+            callback.call(context, iterable[i], i);
+        }
+      } else if (iterable.forEach) {
+        iterable.forEach(callback, context);
+      } else {
+        for (var k in iterable) {
+          if (hasOwnProperty.call(iterable, k))
+            callback.call(context, iterable[k], k);
+        }
+      }
+    }
+  }
 
 
   // ##############
@@ -216,9 +240,9 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
 
     /**
-     * @class WeakMap
-     * @description Collection using objects with unique identities as keys that disallows enumeration
-     *  and allows for better garbage collection.
+     * @class        WeakMap
+     * @description  Collection using objects with unique identities as keys that disallows enumeration
+     *               and allows for better garbage collection.
      */
     function WeakMap(){
       if (!(this instanceof WeakMap))
@@ -287,13 +311,27 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     var STRING = 0, NUMBER = 1, OTHER = 2;
     var others = { 'true': true, 'false': false, 'null': null, 0: -0 };
 
+    if ('toString' in create(null)) {
+      var coerce = function(key){
+        return typeof key === 'string' ? '_'+key : ''+key;
+      };
+      var uncoerceString = function(key){
+        return key.slice(1);
+      }
+    } else {
+      var uncoerceString = coerce = function(key){
+        return key;
+      };
+    }
+
     var uncoerce = function(type, key){
       switch (type) {
-        case STRING: return key;
+        case STRING: return uncoerceString(key);
         case NUMBER: return +key;
         case OTHER: return others[key];
       }
     }
+
 
     var validate = function(key){
       if (key == null) return OTHER;
@@ -306,18 +344,24 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
 
     /**
-     * @class HashMap
-     * @description Collection that only allows primitives to be keys.
+     * @class          HashMap
+     * @description    Collection that only allows primitives to be keys.
+     * @param          {Iterable} [iterable]  An item to populate the collection with.
      */
-    function HashMap(){
+    function HashMap(iterable){
       if (!(this instanceof HashMap))
         return new HashMap;
 
-      wrap(this, [
-        create(null),
-        create(null),
-        create(null)
-      ]);
+      wrap(this, {
+        size: 0,
+        0: create(null),
+        1: create(null),
+        2: create(null)
+      });
+
+      iterate(iterable, function(value, key){
+        this.set(key, value);
+      }, this);
     }
     /**
      * @method       <get>
@@ -326,7 +370,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Any}
      */
     function get(key){
-      return unwrap(this)[validate(key)][key];
+      return unwrap(this)[validate(key)][coerce(key)];
     }
     /**
      * @method       <set>
@@ -335,7 +379,12 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Any} val
      **/
     function set(key, value){
-      unwrap(this)[validate(key)][key] = value;
+      var items = unwrap(this),
+          hash = items[validate(key)];
+
+      key = coerce(key);
+      key in hash || items.size++;
+      hash[key] = value;
     }
     /**
      * @method       <has>
@@ -344,7 +393,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Boolean} is in collection
      **/
     function has(key){
-      return key in unwrap(this)[validate(key)];
+      return coerce(key) in unwrap(this)[validate(key)];
     }
     /**
      * @method       <delete>
@@ -353,33 +402,25 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Boolean} true if item was in collection
      */
     function delete_(key){
-      var hash = unwrap(this)[validate(key)];
+      var items = unwrap(this);
+          hash = items[validate(key)];
 
+      key = coerce(key);
       if (key in hash) {
         delete hash[key];
+        items.size--;
         return true;
       }
 
-      return true;
+      return false;
     }
     /**
-     * @method       <map>
-     * @description  Loop through the collection adding the return value for each to an array and returns it
-     * @param        {Function} callback  `callback(value, key)`
-     * @param        {Object}   context    The `this` binding for callbacks, default null
-     * @return       {Array}  collected return values
+     * @method       <size>
+     * @description  Retrieve the amount of items in the collection
+     * @return       {Number}
      */
-    function map(callback, context){
-      var hash = unwrap(this),
-          out = [];
-
-      context = context == null ? global : context;
-
-      for (var i=0; i < 3; i++)
-        for (var key in hash[i])
-          out.push(callback.call(context, hash[i][key], uncoerce(i, key), this));
-
-      return out;
+    function size(){
+      return unwrap(this).size;
     }
     /**
      * @method       <forEach>
@@ -388,10 +429,14 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Object}   context    The `this` binding for callbacks, default null
      */
     function forEach(callback, context){
-      this.map(callback, context);
+      var hash = unwrap(this);
+      context = context == null ? global : context;
+      for (var i=0; i < 3; i++)
+        for (var key in hash[i])
+          callback.call(context, hash[i][key], uncoerce(i, key), this);
     }
 
-    return [HashMap, get, set, has, delete_, map, forEach];
+    return [HashMap, get, set, has, delete_, size, forEach];
   });
 
 
@@ -404,10 +449,11 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       return o != null && typeof o === 'object' || typeof o === 'function' ? 1 : 0;
     }
     /**
-     * @class Map
-     * @description Collection that allows any kind of value to be a key.
+     * @class         Map
+     * @description   Collection that allows any kind of value to be a key.
+     * @param         {Iterable} [iterable]  An item to populate the collection with.
      */
-    function Map(){
+    function Map(iterable){
       if (!(this instanceof Map))
         return new Map;
 
@@ -417,6 +463,10 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
         keys: [],
         values: []
       });
+
+      iterate(iterable, function(value, key){
+        this.set(key, value);
+      }, this);
     }
     /**
      * @method       <get>
@@ -477,24 +527,12 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       return true;
     }
     /**
-     * @method       <map>
-     * @description  Loop through the collection adding the return value for each to an array and returns it
-     * @param        {Function} callback  `callback(value, key)`
-     * @param        {Object}   context    The `this` binding for callbacks, default null
-     * @return       {Array}  collected return values
+     * @method       <size>
+     * @description  Retrieve the amount of items in the collection
+     * @return       {Number}
      */
-    function map(callback, context){
-      var maps = unwrap(this),
-          keys = maps.keys,
-          values = maps.values,
-          out = [];
-
-      context = context == null ? global : context;
-
-      for (var i=0, len=keys.length; i < len; i++)
-        out.push(callback.call(context, values[i], keys[i]));
-
-      return out;
+    function size(){
+      return unwrap(this).keys.length;
     }
     /**
      * @method       <forEach>
@@ -503,10 +541,17 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Object}   context    The `this` binding for callbacks, default null
      */
     function forEach(callback, context){
-      this.map(callback, context);
+      var maps = unwrap(this),
+          keys = maps.keys,
+          values = maps.values;
+
+      context = context == null ? global : context;
+
+      for (var i=0, len=keys.length; i < len; i++)
+        callback.call(context, values[i], keys[i]);
     }
 
-    return [Map, get, set, has, delete_, map, forEach];
+    return [Map, get, set, has, delete_, size, forEach];
   });
 
 
@@ -517,14 +562,17 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
   exporter('Set', function(wrap, unwrap){
     /**
-     * @class        |Set|
+     * @class        Set
      * @description  Collection of values that enforces uniqueness.
+     * @param        {Iterable} [iterable]  An item to populate the collection with.
      **/
-    function Set(){
+    function Set(iterable){
       if (!(this instanceof Set))
         return new Set;
 
       wrap(this, new exports.Map);
+
+      iterate(iterable, this.add, this);
     }
     /**
      * @method       <add>
@@ -553,18 +601,12 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       return unwrap(this)['delete'](key);
     }
     /**
-     * @method       <map>
-     * @description  Loop through the collection adding the return value for each to an array and returns it.
-                     Index is simply the counter for the current iteration.
-     * @param        {Function} callback  `callback(value, index)`
-     * @param        {Object}   context    The `this` binding for callbacks, default null
-     * @return       {Array}  collected return values
+     * @method       <size>
+     * @description  Retrieve the amount of items in the collection
+     * @return       {Number}
      */
-    function map(callback, context){
-      var index = 0;
-      return unwrap(this).map(function(key){
-        return callback.call(this, key, index++);
-      }, context);
+    function size(){
+      return unwrap(this).size();
     }
     /**
      * @method       <forEach>
@@ -578,7 +620,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
         callback.call(this, key, index++);
       }, context);
     }
-    return [Set, add, has, delete_, map, forEach];
+    return [Set, add, has, delete_, size, forEach];
   });
 }('toString', Object, Function.prototype, Function('return this')(), typeof exports === 'undefined' ? this : exports, {});
 

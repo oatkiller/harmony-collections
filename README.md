@@ -30,7 +30,7 @@ For example, data stored using jQuery.data can never be garbage collected unless
 Retire jQuery.data and similar, consider it replaced with prejudice.
 
 ```javascript
-// reusable storage creator for making as many separate stores as needed
+// reusable storage creator
 function createStorage(){
   var store = new WeakMap;
   return function(o){
@@ -40,7 +40,7 @@ function createStorage(){
   };
 }
 
-// now we can create private/namespaced properties associated with objects
+// allows private/namespaced properties for the objects
 var _ = createStorage();
 
 functioon Wrapper(element){
@@ -94,6 +94,7 @@ __Non-primitives__ are valid keys. Objects, functions, DOM nodes, etc.
 
 WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.
 
+* `new WeakMap()` Create a new WeakMap.
 * `WeakMap#set(key, value)` Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.
 * `WeakMap#get(key)` Returns the value that key corresponds to the key or undefined.
 * `WeakMap#has(key)` Returns boolean.
@@ -106,12 +107,13 @@ __Primitives__ are valid keys. Exact value is used, so `500` is different from `
 
 Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.
 
+* `new HashMap(iterable)` Create a new HashMap populated with the iterable. Accepts __[[Key, Value]..], Array, Object, Collection__.
 * `HashMap#set(key, value)` Key must be primitive. Returns undefined.
 * `HashMap#get(key)` Returns the value that key corresponds to or undefined.
 * `HashMap#has(key)` Returns boolean.
 * `HashMap#delete(key)` Removes value from the collection if found. Returns true.
+* `HashMap#size()` Returns the number of items in the collection.
 * `HashMap#forEach(callback, context)` Loop through the collection raising callback for each.
-* `HashMap#map(callback, context)` Loop through the collection adding the return value for each to an array and returns it.
 
 
 ### Map
@@ -120,23 +122,25 @@ __All possible values__ are valid keys, including -0, undefined, null, and NaN. 
 
 Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.
 
+* `new Map(iterable)` Create a new Map populated with the iterable. Accepts __[[Key, Value]..], Array, Object, Collection__.
 * `Map#set(key, value)` Key is any value including objects. Returns undefined.
 * `Map#get(key)` Returns the value that key corresponds to or undefined.
 * `Map#has(key)` Returns boolean.
 * `Map#delete(key)` Removes value from the collection if found. Returns true.
+* `Map#size()` Returns the number of items in the collection.
 * `Map#forEach(callback, context)` Loop through the collection raising callback for each.
-* `Map#map(callback, context)` Loop through the collection adding the return value for each to an array and returns it.
 
 
 ### Set
 
 Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.
 
+* `new Set(iterable)` Create a new Set populated with the iterable. Accepts __Array, Object, Collection__.
 * `Set#add(value)` Inserts a value of any type into the set if it's not already in the set.
 * `Set#has(value)` Returns boolean.
 * `Set#delete(value)` Removes value from the collection if found. Returns true.
+* `Set#size()` Returns the number of items in the collection.
 * `Set#forEach(callback, context)` Loop through the collection raising callback for each.
-* `Set#map(callback, context)` Loop through the collection adding the return value for each to an array and returns it.
 
 
 
