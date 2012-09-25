@@ -1,44 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Harmony Collections Shim by Benvie</title>
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="javascripts/main.js"></script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Harmony Collections Shim : Map, WeakMap, and Set implemented in JavaScript" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Harmony Collections Shim</title>
   </head>
+
   <body>
 
-      <header>
-        <h1>Harmony Collections Shim</h1>
-        <p>Map, WeakMap, and Set implemented in JavaScript</p>
-      </header>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/Benvie/harmony-collections">View on GitHub</a>
 
-      <div id="banner">
-        <span id="logo"></span>
+          <h1 id="project_title">Harmony Collections Shim</h1>
+          <h2 id="project_tagline">Map, WeakMap, and Set implemented in JavaScript</h2>
 
-        <a href="https://github.com/Benvie/harmony-collections" class="button fork"><strong>View On GitHub</strong></a>
-        <div class="downloads">
-          <span>Downloads:</span>
-          <ul>
-            <li><a href="https://github.com/Benvie/harmony-collections/zipball/master" class="button">ZIP</a></li>
-            <li><a href="https://github.com/Benvie/harmony-collections/tarball/master" class="button">TAR</a></li>
-          </ul>
-        </div>
-      </div><!-- end banner -->
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/Benvie/harmony-collections/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/Benvie/harmony-collections/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
 
-    <div class="wrapper">
-      <nav>
-        <ul></ul>
-      </nav>
-      <section>
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h1>Harmony Collections Shim</h1>
 
 <p>Use the new <strong>Map</strong>, <strong>Set</strong>, and <strong>WeakMap</strong> from the upcoming ES6 standard right now! This shim provides full functionality for these collections and delivers the benefits of using them.</p>
@@ -72,7 +64,7 @@
 
 <p>Retire jQuery.data and similar, consider it replaced with prejudice.</p>
 
-<div class="highlight"><pre><span class="c1">// reusable storage creator for making as many separate stores as needed</span>
+<div class="highlight"><pre><span class="c1">// reusable storage creator</span>
 <span class="kd">function</span> <span class="nx">createStorage</span><span class="p">(){</span>
   <span class="kd">var</span> <span class="nx">store</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WeakMap</span><span class="p">;</span>
   <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="nx">o</span><span class="p">){</span>
@@ -82,7 +74,7 @@
   <span class="p">};</span>
 <span class="p">}</span>
 
-<span class="c1">// now we can create private/namespaced properties associated with objects</span>
+<span class="c1">// allows private/namespaced properties for the objects</span>
 <span class="kd">var</span> <span class="nx">_</span> <span class="o">=</span> <span class="nx">createStorage</span><span class="p">();</span>
 
 <span class="nx">functioon</span> <span class="nx">Wrapper</span><span class="p">(</span><span class="nx">element</span><span class="p">){</span>
@@ -137,6 +129,8 @@
 
 <ul>
 <li>
+<code>new WeakMap()</code> Create a new WeakMap.</li>
+<li>
 <code>WeakMap#set(key, value)</code> Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.</li>
 <li>
 <code>WeakMap#get(key)</code> Returns the value that key corresponds to the key or undefined.</li>
@@ -152,6 +146,8 @@
 
 <ul>
 <li>
+<code>new HashMap(iterable)</code> Create a new HashMap populated with the iterable. Accepts <strong>[[Key, Value]..], Array, Object, Collection</strong>.</li>
+<li>
 <code>HashMap#set(key, value)</code> Key must be primitive. Returns undefined.</li>
 <li>
 <code>HashMap#get(key)</code> Returns the value that key corresponds to or undefined.</li>
@@ -160,9 +156,9 @@
 <li>
 <code>HashMap#delete(key)</code> Removes value from the collection if found. Returns true.</li>
 <li>
-<code>HashMap#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
+<code>HashMap#size()</code> Returns the number of items in the collection.</li>
 <li>
-<code>HashMap#map(callback, context)</code> Loop through the collection adding the return value for each to an array and returns it.</li>
+<code>HashMap#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 </ul><h3>Map</h3>
 
 <p><strong>All possible values</strong> are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.</p>
@@ -170,6 +166,8 @@
 <p>Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.</p>
 
 <ul>
+<li>
+<code>new Map(iterable)</code> Create a new Map populated with the iterable. Accepts <strong>[[Key, Value]..], Array, Object, Collection</strong>.</li>
 <li>
 <code>Map#set(key, value)</code> Key is any value including objects. Returns undefined.</li>
 <li>
@@ -179,14 +177,16 @@
 <li>
 <code>Map#delete(key)</code> Removes value from the collection if found. Returns true.</li>
 <li>
-<code>Map#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
+<code>Map#size()</code> Returns the number of items in the collection.</li>
 <li>
-<code>Map#map(callback, context)</code> Loop through the collection adding the return value for each to an array and returns it.</li>
+<code>Map#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 </ul><h3>Set</h3>
 
 <p>Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.</p>
 
 <ul>
+<li>
+<code>new Set(iterable)</code> Create a new Set populated with the iterable. Accepts <strong>Array, Object, Collection</strong>.</li>
 <li>
 <code>Set#add(value)</code> Inserts a value of any type into the set if it's not already in the set.</li>
 <li>
@@ -194,9 +194,9 @@
 <li>
 <code>Set#delete(value)</code> Removes value from the collection if found. Returns true.</li>
 <li>
-<code>Set#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
+<code>Set#size()</code> Returns the number of items in the collection.</li>
 <li>
-<code>Set#map(callback, context)</code> Loop through the collection adding the return value for each to an array and returns it.</li>
+<code>Set#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 </ul><h2>License</h2>
 
 <p>(The MIT License)
@@ -214,12 +214,17 @@ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVE
 FOR ANY  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH
 THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
       </section>
-      <footer>
-        <p>Project maintained by <a href="https://github.com/Benvie">Benvie</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Harmony Collections Shim maintained by <a href="https://github.com/Benvie">Benvie</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
     
+
   </body>
 </html>
