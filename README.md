@@ -27,8 +27,6 @@ For example, data stored using jQuery.data can never be garbage collected unless
 ## Detailed Examples
 
 ### Map/WeakMap
-Retire jQuery.data and similar, consider it replaced with prejudice.
-
 ```javascript
 // reusable storage creator
 function createStorage(){
@@ -54,7 +52,7 @@ functioon Wrapper(element){
 
 Wrapper.prototype = {
   get classes(){
-    return [].slice.call(_(this).element);
+    return [].slice.call(_(this).element.classList);
   },
   set classes(v){
     _(this).element.className = [].concat(v).join(' ');
@@ -63,7 +61,7 @@ Wrapper.prototype = {
 ```
 
 ### Set
-A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is `O(1)` but `O(n)` for an Array. An example of where this is useful is in implementing `Array.prototype.unique`.
+A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is `O(1)` but `O(n)` for an Array. An example of where this is useful is in implementing `Array.prototype.unique` that works with objects.
 
 Both of the following will output the same result, however the Set version is `O(n)` and the one using indexOf is `O(n^2)`. For an array taking 30 seconds using the set, an __*hour*__ is required for indexOf.
 
