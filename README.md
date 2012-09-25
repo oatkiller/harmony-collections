@@ -20,9 +20,9 @@ ES6 Collections provide a new core weapon to your JS arsenal: objects as keys. T
 
 ### WeakMap Garbage Collection Semantics
 
-The benefit of using WeakMaps is enhanced garbage collection. In a WeakMap, the only reference created is key -> value, so it's possible for a key/value in a WeakMap to be garbage collected while the WeakMap they're in still exists! Compare this to an Array, where all items in the Array will not be garbage collected as long as the Array isn't. This forces either explicitly management of the object lifespans, or more commonly is simply a memory leak.
+The benefit of using WeakMaps is enhanced garbage collection. In a WeakMap, the only reference created is key -> value, so it's possible for a key/value in a WeakMap to be garbage collected while the WeakMap they're in still exists! Compare this to an Array, where all items in the Array will not be garbage collected as long as the Array isn't. This forces either explicit management of  object lifespans or, more commonly, simply results in memory leaks.
 
-For example, data stored using jQuery.data can never be garbage collected unless explicitly nulled out, because it is stored in a container that strongly references it. Using a WeakMap, it's possible to associate data with an element and have the data destroyed when the element is without memory leaking the element, i.e. `weakmap.set(element, { myData: 'gc safe!' })`. jQuery.data (every library has similar functionality) prevent the element from memory leaking by using a numeric id, but this does nothing for the __data__ that is stored.
+For example, data stored using jQuery.data can never be garbage collected unless explicitly nulled out, because it is stored in a container that strongly references the items held inside. Using a WeakMap, it's possible to associate data with an element and have the data destroyed when the element is -- without memory leaking the element; i.e. `weakmap.set(element, { myData: 'gc safe!' })`. jQuery.data (every library has similar functionality) prevents the *element* from memory leaking by using a numeric id, but this does nothing for the __data__ that is stored.
 
 ## Detailed Examples
 
