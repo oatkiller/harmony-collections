@@ -70,8 +70,6 @@
 
 <h3>Map/WeakMap</h3>
 
-<p>Retire jQuery.data and similar, consider it replaced with prejudice.</p>
-
 <div class="highlight"><pre><span class="c1">// reusable storage creator</span>
 <span class="kd">function</span> <span class="nx">createStorage</span><span class="p">(){</span>
   <span class="kd">var</span> <span class="nx">store</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WeakMap</span><span class="p">;</span>
@@ -96,7 +94,7 @@
 
 <span class="nx">Wrapper</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="p">{</span>
   <span class="nx">get</span> <span class="nx">classes</span><span class="p">(){</span>
-    <span class="k">return</span> <span class="p">[].</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">_</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">element</span><span class="p">);</span>
+    <span class="k">return</span> <span class="p">[].</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">_</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">element</span><span class="p">.</span><span class="nx">classList</span><span class="p">);</span>
   <span class="p">},</span>
   <span class="nx">set</span> <span class="nx">classes</span><span class="p">(</span><span class="nx">v</span><span class="p">){</span>
     <span class="nx">_</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">element</span><span class="p">.</span><span class="nx">className</span> <span class="o">=</span> <span class="p">[].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">v</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">' '</span><span class="p">);</span>
@@ -106,7 +104,7 @@
 
 <h3>Set</h3>
 
-<p>A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is <code>O(1)</code> but <code>O(n)</code> for an Array. An example of where this is useful is in implementing <code>Array.prototype.unique</code>.</p>
+<p>A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is <code>O(1)</code> but <code>O(n)</code> for an Array. An example of where this is useful is in implementing <code>Array.prototype.unique</code> that works with objects.</p>
 
 <p>Both of the following will output the same result, however the Set version is <code>O(n)</code> and the one using indexOf is <code>O(n^2)</code>. For an array taking 30 seconds using the set, an <strong><em>hour</em></strong> is required for indexOf.</p>
 
@@ -129,61 +127,63 @@
 
 <h2>API Reference</h2>
 
+<p>In place of the new <code>for...of</code> syntax available in ES6 for iterating over collections, <code>forEach</code> methods are included with Map, Set, and HashMap. These work the same as <code>Array#forEach</code>.</p>
+
 <h3>WeakMap</h3>
 
 <p><strong>Non-primitives</strong> are valid keys. Objects, functions, DOM nodes, etc.</p>
 
-<p>WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.</p>
+<p>WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as an object used as a key.</p>
 
 <ul>
 <li>
 <code>new WeakMap()</code> Create a new WeakMap.</li>
 <li>
-<code>WeakMap#set(key, value)</code> Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.</li>
+<code>WeakMap#set(key, value)</code> Key must be non-primitive. Returns undefined.</li>
 <li>
 <code>WeakMap#get(key)</code> Returns the value that key corresponds to the key or undefined.</li>
 <li>
 <code>WeakMap#has(key)</code> Returns boolean.</li>
 <li>
-<code>WeakMap#delete(key)</code> Removes value from the collection if found. Returns true.</li>
+<code>WeakMap#delete(key)</code> Removes the value from the collection and returns boolean indicating if there was a value to delete.</li>
 </ul><h3>HashMap</h3>
 
-<p><strong>Primitives</strong> are valid keys. Exact value is used, so <code>500</code> is different from <code>"500"</code>, <code>-0</code> is different from <code>0</code>, `<code>"false"</code> isn't <code>false</code>, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).</p>
+<p><strong>Primitives</strong> are valid keys. Exact value is used; e.g. <code>'0'/-0/0</code> are all different keys.</p>
 
-<p>Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.</p>
+<p>HashMap is not standard, but is used to implement Map and is exported as a bonus. Has the same API as Map except it only allows primitive keys.</p>
 
 <ul>
 <li>
-<code>new HashMap(iterable)</code> Create a new HashMap populated with the iterable. Accepts <strong>[[Key, Value]..], Array, Object, Collection</strong>.</li>
+<code>new HashMap(iterable)</code> Create a new HashMap populated with the iterable. Accepts <em>[[Key, Value]...]</em>, <em>Array</em>, <em>Object</em>, <em>Map</em>, <em>Set</em>, <em>HashMap</em>.</li>
 <li>
 <code>HashMap#set(key, value)</code> Key must be primitive. Returns undefined.</li>
 <li>
-<code>HashMap#get(key)</code> Returns the value that key corresponds to or undefined.</li>
+<code>HashMap#get(key)</code> Returns the value the key corresponds to or undefined.</li>
 <li>
 <code>HashMap#has(key)</code> Returns boolean.</li>
 <li>
-<code>HashMap#delete(key)</code> Removes value from the collection if found. Returns true.</li>
+<code>HashMap#delete(key)</code> Removes the value from the collection and returns boolean indicating if there was a value to delete.</li>
 <li>
 <code>HashMap#size()</code> Returns the number of items in the collection.</li>
 <li>
 <code>HashMap#forEach(callback, context)</code> Loop through the collection raising callback for each.</li>
 </ul><h3>Map</h3>
 
-<p><strong>All possible values</strong> are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.</p>
+<p><strong>All possible values</strong> are valid keys, including -0, undefined, null, and NaN.</p>
 
-<p>Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.</p>
+<p>Maps do not have the same garbage collection benefits that WeakMaps do, but instead are iterable and also accept primitive keys. This means any value can be a Map key.</p>
 
 <ul>
 <li>
-<code>new Map(iterable)</code> Create a new Map populated with the iterable. Accepts <strong>[[Key, Value]..], Array, Object, Collection</strong>.</li>
+<code>new Map(iterable)</code> Create a new Map populated with the iterable. Accepts <em>[[Key, Value]...]</em>, <em>Array</em>, <em>Object</em>, <em>Map</em>, <em>Set</em>, <em>HashMap</em>.</li>
 <li>
 <code>Map#set(key, value)</code> Key is any value including objects. Returns undefined.</li>
 <li>
-<code>Map#get(key)</code> Returns the value that key corresponds to or undefined.</li>
+<code>Map#get(key)</code> Returns the value the key maps to or undefined.</li>
 <li>
 <code>Map#has(key)</code> Returns boolean.</li>
 <li>
-<code>Map#delete(key)</code> Removes value from the collection if found. Returns true.</li>
+<code>Map#delete(key)</code> Removes the key and value from the collection if found. Returns true.</li>
 <li>
 <code>Map#size()</code> Returns the number of items in the collection.</li>
 <li>
@@ -194,13 +194,13 @@
 
 <ul>
 <li>
-<code>new Set(iterable)</code> Create a new Set populated with the iterable. Accepts <strong>Array, Object, Collection</strong>.</li>
+<code>new Set(iterable)</code> Create a new Set populated with the iterable. Accepts <em>Array</em>, <em>Object</em>, <em>Map</em>, <em>Set</em>, <em>HashMap</em>.</li>
 <li>
 <code>Set#add(value)</code> Inserts a value of any type into the set if it's not already in the set.</li>
 <li>
 <code>Set#has(value)</code> Returns boolean.</li>
 <li>
-<code>Set#delete(value)</code> Removes value from the collection if found. Returns true.</li>
+<code>Set#delete(value)</code> Removes the value from the collection and returns boolean indicating if there was a value to delete.</li>
 <li>
 <code>Set#size()</code> Returns the number of items in the collection.</li>
 <li>
