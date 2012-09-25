@@ -87,46 +87,47 @@ function uniqueUsingSet(array){
 
 
 ## API Reference
+In place of the new `for...of` syntax available in ES6 for iterating over collections, `forEach` methods are included with Map, Set, and HashMap. These work the same as `Array#forEach`.
 
 ### WeakMap
 
 __Non-primitives__ are valid keys. Objects, functions, DOM nodes, etc.
 
-WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as the object used as the key.
+WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as an object used as a key.
 
 * `new WeakMap()` Create a new WeakMap.
-* `WeakMap#set(key, value)` Key is any value including objects. Only non-primitives can be used as keys. Returns undefined.
+* `WeakMap#set(key, value)` Key must be non-primitive. Returns undefined.
 * `WeakMap#get(key)` Returns the value that key corresponds to the key or undefined.
 * `WeakMap#has(key)` Returns boolean.
-* `WeakMap#delete(key)` Removes value from the collection if found. Returns true.
+* `WeakMap#delete(key)` Removes the value from the collection and returns boolean indicating if there was a value to delete.
 
 
 ### HashMap
 
-__Primitives__ are valid keys. Exact value is used, so `500` is different from `"500"`, `-0` is different from `0`, ``"false"` isn't `false`, etc. NaN does equal itself when used as a key (as opposed to everywhere else in JS).
+__Primitives__ are valid keys. Exact value is used; e.g. `'0'/-0/0` are all different keys.
 
-Though not part of ES6, HashMap is also exported. This has the same API as a Map except it only accepts primitive keys. This is needed to implement Map so as a bonus it's exported as well.
+HashMap is not standard, but is used to implement Map and is exported as a bonus. Has the same API as Map except it only allows primitive keys.
 
-* `new HashMap(iterable)` Create a new HashMap populated with the iterable. Accepts __[[Key, Value]..], Array, Object, Collection__.
+* `new HashMap(iterable)` Create a new HashMap populated with the iterable. Accepts *[[Key, Value]...]*, *Array*, *Object*, *Map*, *Set*, *HashMap*.
 * `HashMap#set(key, value)` Key must be primitive. Returns undefined.
-* `HashMap#get(key)` Returns the value that key corresponds to or undefined.
+* `HashMap#get(key)` Returns the value the key corresponds to or undefined.
 * `HashMap#has(key)` Returns boolean.
-* `HashMap#delete(key)` Removes value from the collection if found. Returns true.
+* `HashMap#delete(key)` Removes the value from the collection and returns boolean indicating if there was a value to delete.
 * `HashMap#size()` Returns the number of items in the collection.
 * `HashMap#forEach(callback, context)` Loop through the collection raising callback for each.
 
 
 ### Map
 
-__All possible values__ are valid keys, including -0, undefined, null, and NaN. Uses a HashMap and WeakMap together to cover primitives and non-primitives.
+__All possible values__ are valid keys, including -0, undefined, null, and NaN.
 
-Maps are much the same as WeakMaps but they can be iterated and thus their contents can be inspected. Many use cases have no requirement for anonymity or special garbage collection, but can benefit from using objects as keys and also not having the storage contained in the Map itself.
+Maps do not have the same garbage collection benefits that WeakMaps do, but instead are iterable and also accept primitive keys. This means any value can be a Map key.
 
-* `new Map(iterable)` Create a new Map populated with the iterable. Accepts __[[Key, Value]..], Array, Object, Collection__.
+* `new Map(iterable)` Create a new Map populated with the iterable. Accepts *[[Key, Value]...]*, *Array*, *Object*, *Map*, *Set*, *HashMap*.
 * `Map#set(key, value)` Key is any value including objects. Returns undefined.
-* `Map#get(key)` Returns the value that key corresponds to or undefined.
+* `Map#get(key)` Returns the value the key maps to or undefined.
 * `Map#has(key)` Returns boolean.
-* `Map#delete(key)` Removes value from the collection if found. Returns true.
+* `Map#delete(key)` Removes the key and value from the collection if found. Returns true.
 * `Map#size()` Returns the number of items in the collection.
 * `Map#forEach(callback, context)` Loop through the collection raising callback for each.
 
@@ -135,10 +136,10 @@ Maps are much the same as WeakMaps but they can be iterated and thus their conte
 
 Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.
 
-* `new Set(iterable)` Create a new Set populated with the iterable. Accepts __Array, Object, Collection__.
+* `new Set(iterable)` Create a new Set populated with the iterable. Accepts *Array*, *Object*, *Map*, *Set*, *HashMap*.
 * `Set#add(value)` Inserts a value of any type into the set if it's not already in the set.
 * `Set#has(value)` Returns boolean.
-* `Set#delete(value)` Removes value from the collection if found. Returns true.
+* `Set#delete(value)` Removes the value from the collection and returns boolean indicating if there was a value to delete.
 * `Set#size()` Returns the number of items in the collection.
 * `Set#forEach(callback, context)` Loop through the collection raising callback for each.
 
