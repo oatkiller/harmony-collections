@@ -61,7 +61,7 @@ Wrapper.prototype = {
 ```
 
 ### Set
-A Set is similar to an Array in what it stores, but different in how. A Set is unordered and its values are unique. Determining whether an item is in a Set is `O(1)` but `O(n)` for an Array. An example of where this is useful is in implementing `Array.prototype.unique` that works with objects.
+A Set is similar to an Array in what it stores, but different in how. A Set's values are unique. Determining whether an item is in a Set is `O(1)` but `O(n)` for an Array. An example of where this is useful is in implementing `Array.prototype.unique` that works with objects.
 
 Both of the following will output the same result, however the Set version is `O(n)` and the one using indexOf is `O(n^2)`. For an array taking 30 seconds using the set, an __*hour*__ is required for indexOf.
 
@@ -85,7 +85,10 @@ function uniqueUsingSet(array){
 
 
 ## API Reference
-In place of the new `for...of` syntax available in ES6 for iterating over collections, `forEach` methods are included with Map, Set, and HashMap. These work the same as `Array#forEach`.
+
+* Collections may be inherited from. Initialize objects via `[WeakMap|Map|Set].call(obj)`.
+* Iteration is insertion ordered.
+
 
 ### WeakMap
 
@@ -93,7 +96,7 @@ __Non-primitives__ are valid keys. Objects, functions, DOM nodes, etc.
 
 WeakMaps require the use of objects as keys; primitives are not valid keys. WeakMaps have no way to enumerate their keys or values. Because of this, the only way to retrieve a value from a WeakMap is to have access to both the WeakMap itself as well as an object used as a key.
 
-* `new WeakMap()` Create a new WeakMap.
+* `new WeakMap(iterable)` Create a new WeakMap populated with the iterable. Accepts *[[Key, Value]...]*, *Array*, *Iterable*.
 * `WeakMap#set(key, value)` Key must be non-primitive. Returns undefined.
 * `WeakMap#get(key)` Returns the value that key corresponds to the key or undefined.
 * `WeakMap#has(key)` Returns boolean.
@@ -106,7 +109,7 @@ __Primitives__ are valid keys. Exact value is used; e.g. `'0'/-0/0` are all diff
 
 HashMap is not standard, but is used to implement Map and is exported as a bonus. Has the same API as Map except it only allows primitive keys.
 
-* `new HashMap(iterable)` Create a new HashMap populated with the iterable. Accepts *[[Key, Value]...]*, *Array*, *Object*, *Map*, *Set*, *HashMap*.
+* `new HashMap(iterable)` Create a new HashMap populated with the iterable. Accepts *[[Key, Value]...]*, *Iterable*.
 * `HashMap#set(key, value)` Key must be primitive. Returns undefined.
 * `HashMap#get(key)` Returns the value the key corresponds to or undefined.
 * `HashMap#has(key)` Returns boolean.
@@ -121,7 +124,7 @@ __All possible values__ are valid keys, including -0, undefined, null, and NaN.
 
 Maps do not have the same garbage collection benefits that WeakMaps do, but instead are iterable and also accept primitive keys. This means any value can be a Map key.
 
-* `new Map(iterable)` Create a new Map populated with the iterable. Accepts *[[Key, Value]...]*, *Array*, *Object*, *Map*, *Set*, *HashMap*.
+* `new Map(iterable)` Create a new Map populated with the iterable. Accepts *[[Key, Value]...]*, *Array*, *Iterable*.
 * `Map#set(key, value)` Key is any value including objects. Returns undefined.
 * `Map#get(key)` Returns the value the key maps to or undefined.
 * `Map#has(key)` Returns boolean.
@@ -132,9 +135,9 @@ Maps do not have the same garbage collection benefits that WeakMaps do, but inst
 
 ### Set
 
-Sets are similar to arrays but enforce uniqueness of values and are unordered. Adding the same value twice will only result in one being added to the set.
+Sets are similar to arrays but enforce uniqueness of values. Adding the same value twice will only result in one being added to the set.
 
-* `new Set(iterable)` Create a new Set populated with the iterable. Accepts *Array*, *Object*, *Map*, *Set*, *HashMap*.
+* `new Set(iterable)` Create a new Set populated with the iterable. Accepts *Array*, *Iterable*.
 * `Set#add(value)` Inserts a value of any type into the set if it's not already in the set.
 * `Set#has(value)` Returns boolean.
 * `Set#delete(value)` Removes the value from the collection and returns boolean indicating if there was a value to delete.

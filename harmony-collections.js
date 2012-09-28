@@ -72,33 +72,24 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     return FP[TOSTRING].call(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
   };
 
-  var iterate = function(iterable, callback, context){
-    context = context || iterable;
-    if (iterable !== null && typeof iterable === 'object') {
-      if (iterable instanceof Array) {
-        for (var i=0; i < iterable.length; i++) {
-          if (iterable[i] instanceof Array && iterable[i].length === 2)
-            callback.call(context, iterable[i][0], iterable[i][1]);
-          else
-            callback.call(context, iterable[i], i);
-        }
-      } else if (iterable.forEach) {
-        iterable.forEach(callback, context);
-      } else {
-        for (var k in iterable) {
-          if (hasOwnProperty.call(iterable, k))
-            callback.call(context, iterable[k], k);
-        }
-      }
-    }
-  }
+  var callbind = function(fn){
+    return function(){
+      return _call.apply(fn, arguments);
+    };
+  };
+
+  var _call = Function.prototype.call,
+      _apply = Function.prototype.apply,
+      call = callbind(_call),
+      apply = callbind(_apply);
 
 
-  // ##############
-  // ### Locker ###
-  // ##############
 
-  var Locker = (function(){
+  // ############
+  // ### Data ###
+  // ############
+
+  var Data = (function(){
     var getProperties = Object.getOwnPropertyNames,
         lockboxDesc = { value: { writable: true, value: undefined } },
         locker = 'return function(k){if(k===s)return l}',
@@ -159,7 +150,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
 
 
-    function Locker(){
+    function Data(){
       var puid = createUID(),
           secret = {};
 
@@ -178,10 +169,10 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
     function get(o){ return this.unlock(o).value }
     function set(o, v){ this.unlock(o).value = v }
-    define(Locker.prototype, get);
-    define(Locker.prototype, set);
+    define(Data.prototype, get);
+    define(Data.prototype, set);
 
-    return Locker;
+    return Data;
   }());
 
 
@@ -210,16 +201,19 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
 
     return function(classname, init){
-      if (classname in exports) return;
+      if (classname in exports) return exports[classname];
 
-      var locker = new Locker;
+      var data = new Data;
 
-      exports[classname] = prepare(init(
+      return exports[classname] = prepare(init(
         function(collection, value){
-          locker.unlock(collection).value = value;
+          var store = data.unlock(collection);
+          if (store.value)
+            throw new TypeError(classname + " has already been initialized.");
+          store.value = value;
         },
         function(collection){
-          var storage = locker.unlock(collection).value;
+          var storage = data.unlock(collection).value;
           if (!storage)
             throw new TypeError(classname + " is not generic.");
           return storage;
@@ -229,11 +223,24 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   }());
 
 
+  var initialize = function(iterable, callback){
+    if (iterable !== null && typeof iterable === 'object' && typeof iterable.forEach === 'function') {
+      iterable.forEach(function(item, i){
+        if (item instanceof Array && item.length === 2)
+          callback(iterable[i][0], iterable[i][1]);
+        else
+          callback(iterable[i], i);
+      });
+    }
+  }
+
+
   // ###############
   // ### WeakMap ###
   // ###############
 
-  exporter('WeakMap', function(wrap, unwrap){
+  var WeakMap = exporter('WeakMap', function(wrap, unwrap){
+    var prototype = WeakMap.prototype;
     var validate = function(key){
       if (key == null || typeof key !== 'object' && typeof key !== 'function')
         throw new TypeError("WeakMap keys must be objects");
@@ -243,12 +250,18 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @class        WeakMap
      * @description  Collection using objects with unique identities as keys that disallows enumeration
      *               and allows for better garbage collection.
+     * @param        {Iterable} [iterable]  An item to populate the collection with.
      */
-    function WeakMap(){
-      if (!(this instanceof WeakMap))
-        return new WeakMap;
+    function WeakMap(iterable){
+      if (this === global || this == null || this === prototype)
+        return new WeakMap(iterable);
 
-      wrap(this, new Locker);
+      wrap(this, new Data);
+
+      var self = this;
+      iterable && initialize(iterable, function(value, key){
+        call(set, self, value, key);
+      });
     }
     /**
      * @method       <get>
@@ -290,12 +303,12 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      */
     function delete_(key){
       validate(key);
-      var weakmap = unwrap(this);
+      var data = unwrap(this);
 
-      if (weakmap.get(key) === undefined)
+      if (data.get(key) === undefined)
         return false;
 
-      weakmap.set(key, undefined);
+      data.set(key, undefined);
       return true;
     }
 
@@ -307,7 +320,8 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ### HashMap ###
   // ###############
 
-  exporter('HashMap', function(wrap, unwrap){
+  var HashMap = exporter('HashMap', function(wrap, unwrap){
+    var prototype = HashMap.prototype;
     var STRING = 0, NUMBER = 1, OTHER = 2;
     var others = { 'true': true, 'false': false, 'null': null, 0: -0 };
 
@@ -349,8 +363,8 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param          {Iterable} [iterable]  An item to populate the collection with.
      */
     function HashMap(iterable){
-      if (!(this instanceof HashMap))
-        return new HashMap;
+      if (this === global || this == null || this === prototype)
+        return new HashMap(iterable);
 
       wrap(this, {
         size: 0,
@@ -359,9 +373,10 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
         2: create(null)
       });
 
-      iterate(iterable, function(value, key){
-        this.set(key, value);
-      }, this);
+      var self = this;
+      iterable && initialize(iterable, function(value, key){
+        call(set, self, value, key);
+      });
     }
     /**
      * @method       <get>
@@ -380,11 +395,11 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      **/
     function set(key, value){
       var items = unwrap(this),
-          hash = items[validate(key)];
+          data = items[validate(key)];
 
       key = coerce(key);
-      key in hash || items.size++;
-      hash[key] = value;
+      key in data || items.size++;
+      data[key] = value;
     }
     /**
      * @method       <has>
@@ -403,11 +418,11 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      */
     function delete_(key){
       var items = unwrap(this);
-          hash = items[validate(key)];
+          data = items[validate(key)];
 
       key = coerce(key);
-      if (key in hash) {
-        delete hash[key];
+      if (key in data) {
+        delete data[key];
         items.size--;
         return true;
       }
@@ -429,11 +444,11 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Object}   context    The `this` binding for callbacks, default null
      */
     function forEach(callback, context){
-      var hash = unwrap(this);
+      var data = unwrap(this);
       context = context == null ? global : context;
       for (var i=0; i < 3; i++)
-        for (var key in hash[i])
-          callback.call(context, hash[i][key], uncoerce(i, key), this);
+        for (var key in data[i])
+          call(callback, context, data[i][key], uncoerce(i, key), this);
     }
 
     return [HashMap, get, set, has, delete_, size, forEach];
@@ -444,29 +459,39 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ### Map ###
   // ###########
 
-  exporter('Map', function(wrap, unwrap){
+  var Map = exporter('Map', function(wrap, unwrap){
+    var prototype = Map.prototype,
+        wm = WeakMap.prototype,
+        hm = HashMap.prototype,
+        mget    = [hm.get, wm.get],
+        mset    = [hm.set, wm.set],
+        mhas    = [hm.has, wm.has],
+        mdelete = [hm['delete'], wm['delete']];
+
     var type = function(o){
       return o != null && typeof o === 'object' || typeof o === 'function' ? 1 : 0;
     }
+
     /**
      * @class         Map
      * @description   Collection that allows any kind of value to be a key.
      * @param         {Iterable} [iterable]  An item to populate the collection with.
      */
     function Map(iterable){
-      if (!(this instanceof Map))
-        return new Map;
+      if (this === global || this == null || this === prototype)
+        return new Map(iterable);
 
       wrap(this, {
-        0: new exports.HashMap,
-        1: new exports.WeakMap,
+        0: new HashMap,
+        1: new WeakMap,
         keys: [],
         values: []
       });
 
-      iterate(iterable, function(value, key){
-        this.set(key, value);
-      }, this);
+      var self = this;
+      iterable && initialize(iterable, function(value, key){
+        call(set, self, value, key);
+      });
     }
     /**
      * @method       <get>
@@ -475,8 +500,9 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Any}
      */
     function get(key){
-      var maps = unwrap(this);
-      return maps.values[maps[type(key)].get(key)];
+      var data = unwrap(this),
+          t = type(key);
+      return data.values[mget[t].call(data[t], key)];
     }
     /**
      * @method       <set>
@@ -485,17 +511,17 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Any} val
      **/
     function set(key, value){
-      var maps = unwrap(this),
-          map = maps[type(key)],
-          index = map.get(key);
+      var data = unwrap(this),
+          t = type(key),
+          index = mget[t].call(data[t], key);
 
       if (index === undefined) {
-        map.set(key, maps.keys.length);
-        maps.keys.push(key);
-        maps.values.push(value);
+        mset[t].call(data[t], key, data.keys.length);
+        data.keys.push(key);
+        data.values.push(value);
       } else {
-        maps.keys[index] = key;
-        maps.values[index] = value;
+        data.keys[index] = key;
+        data.values[index] = value;
       }
     }
     /**
@@ -505,7 +531,8 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Boolean} is in collection
      **/
     function has(key){
-      return unwrap(this)[type(key)].has(key);
+      var t = type(key);
+      return mhas[t].call(unwrap(this)[t], key);
     }
     /**
      * @method       <delete>
@@ -514,16 +541,16 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Boolean} true if item was in collection
      */
     function delete_(key){
-      var maps = unwrap(this),
-          map = maps[type(key)],
-          index = map.get(key);
+      var data = unwrap(this),
+          t = type(key),
+          index = mget[t].call(data[t], key);
 
       if (index === undefined)
         return false;
 
-      map['delete'](key);
-      maps.keys.splice(index, 1);
-      maps.values.splice(index, 1);
+      mdelete[t].call(data[t], key);
+      data.keys.splice(index, 1);
+      data.values.splice(index, 1);
       return true;
     }
     /**
@@ -541,14 +568,14 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Object}   context    The `this` binding for callbacks, default null
      */
     function forEach(callback, context){
-      var maps = unwrap(this),
-          keys = maps.keys,
-          values = maps.values;
+      var data = unwrap(this),
+          keys = data.keys,
+          values = data.values;
 
       context = context == null ? global : context;
 
       for (var i=0, len=keys.length; i < len; i++)
-        callback.call(context, values[i], keys[i]);
+        call(callback, context, values[i], keys[i], this);
     }
 
     return [Map, get, set, has, delete_, size, forEach];
@@ -560,19 +587,31 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ### Set ###
   // ###########
 
-  exporter('Set', function(wrap, unwrap){
+  var Set = exporter('Set', function(wrap, unwrap){
+    var prototype = Set.prototype,
+        m = Map.prototype,
+        msize = m.size,
+        mforEach = m.forEach,
+        mget = m.get,
+        mset = m.set,
+        mhas = m.has,
+        mdelete = m['delete'];
+
     /**
      * @class        Set
      * @description  Collection of values that enforces uniqueness.
      * @param        {Iterable} [iterable]  An item to populate the collection with.
      **/
     function Set(iterable){
-      if (!(this instanceof Set))
-        return new Set;
+      if (this === global || this == null || this === prototype)
+        return new Set(iterable);
 
-      wrap(this, new exports.Map);
+      wrap(this, new Map);
 
-      iterate(iterable, this.add, this);
+      var self = this;
+      iterable && initialize(iterable, function(value, key){
+        call(add, self, key);
+      });
     }
     /**
      * @method       <add>
@@ -580,7 +619,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Any} val
      */
     function add(key){
-      unwrap(this).set(key, key);
+      mset.call(unwrap(this), key, key);
     }
     /**
      * @method       <has>
@@ -589,7 +628,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Boolean} is in collection
      **/
     function has(key){
-      return unwrap(this).has(key);
+      return mhas.call(unwrap(this), key);
     }
     /**
      * @method       <delete>
@@ -598,7 +637,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Boolean} true if item was in collection
      */
     function delete_(key){
-      return unwrap(this)['delete'](key);
+      return mdelete.call(unwrap(this), key);
     }
     /**
      * @method       <size>
@@ -606,7 +645,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @return       {Number}
      */
     function size(){
-      return unwrap(this).size();
+      return msize.call(unwrap(this));
     }
     /**
      * @method       <forEach>
@@ -615,11 +654,13 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
      * @param        {Object}   context    The `this` binding for callbacks, default null
      */
     function forEach(callback, context){
-      var index = 0;
-      unwrap(this).forEach(function(key){
-        callback.call(this, key, index++);
-      }, context);
+      var index = 0,
+          self = this;
+      mforEach.call(unwrap(this, function(key){
+        call(callback, this, key, index++, self);
+      }, context));
     }
+
     return [Set, add, has, delete_, size, forEach];
   });
 }('toString', Object, Function.prototype, Function('return this')(), typeof exports === 'undefined' ? this : exports, {});
