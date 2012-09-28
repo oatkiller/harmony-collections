@@ -22,21 +22,18 @@
 // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
 // Expanded by Benvie @ https://github.com/Benvie/harmony-collections
 
-void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
+void function(string_, object_, function_, prototype_, toString_, Object, FP, global, exports, undefined_, undefined){
   "use strict";
 
-  var isNative = function(f){
-    return typeof f === 'function' && !('prototype' in f);
-  };
-
-  var es5 = isNative(Object.getOwnPropertyNames);
-  var hasOwnProperty = Object.prototype.hasOwnProperty;
+  var getProperties = Object.getOwnPropertyNames,
+      es5 = typeof getProperties === function_ && !(prototype_ in getProperties),
+      hasOwnProperty = Object[prototype_].hasOwnProperty;
 
   var create = es5
     ? Object.create
     : function(proto, descs){
         var Ctor = function(){}
-        Ctor.prototype = Object(proto);
+        Ctor[prototype_] = Object(proto);
 
         var out = new Ctor;
         if (descs)
@@ -55,7 +52,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       };
 
   var define = function(o, k, v){
-    if (typeof k === 'function') {
+    if (typeof k === function_) {
       v = k;
       k = name(v).replace(/_$/, '');
     }
@@ -64,12 +61,12 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   };
 
   var name = function(f){
-    if (typeof f !== 'function')
+    if (typeof f !== function_)
       return '';
     else if ('name' in f)
       return f.name;
 
-    return FP[TOSTRING].call(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
+    return FP[toString_].call(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
   };
 
   var callbind = function(fn){
@@ -78,8 +75,8 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     };
   };
 
-  var _call = Function.prototype.call,
-      _apply = Function.prototype.apply,
+  var _call = FP.call,
+      _apply = FP.apply,
       call = callbind(_call),
       apply = callbind(_apply);
 
@@ -90,13 +87,12 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ############
 
   var Data = (function(){
-    var getProperties = Object.getOwnPropertyNames,
-        lockboxDesc = { value: { writable: true, value: undefined } },
+    var lockboxDesc = { value: { writable: true, value: undefined } },
         locker = 'return function(k){if(k===s)return l}',
         uids = create(null);
 
     var createUID = function(){
-      var key = Math.random().toString(36).slice(2);
+      var key = Math.random()[toString_](36).slice(2);
       return key in uids ? createUID() : uids[key] = key;
     };
 
@@ -117,7 +113,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
           return obj[globalID];
 
         if (!Object.isExtensible(obj))
-          throw new Error("Collections for non-extensible objects not implemented");
+          throw new TypeError("Object must be extensible");
 
         var store = create(null);
         defineProperty(obj, globalID, { value: store });
@@ -129,21 +125,21 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
       var toStringToString = function(s){
         function toString(){ return s }
-        return toString[TOSTRING] = toString;
-      }(Object.prototype[TOSTRING]+'');
+        return toString[toString_] = toString;
+      }(Object[prototype_][toString_]+'');
 
       // store the values on a custom valueOf in order to hide them but store them locally
       var storage = function(obj){
-        if (hasOwnProperty.call(obj, TOSTRING) && globalID in obj[TOSTRING])
-          return obj[TOSTRING][globalID];
+        if (hasOwnProperty.call(obj, toString_) && globalID in obj[toString_])
+          return obj[toString_][globalID];
 
-        if (!(TOSTRING in obj))
+        if (!(toString_ in obj))
           throw new Error("Can't store values for "+obj);
 
-        var oldToString = obj[TOSTRING];
+        var oldToString = obj[toString_];
         function toString(){ return oldToString.call(this) }
-        obj[TOSTRING] = toString;
-        toString[TOSTRING] = toStringToString;
+        obj[toString_] = toString;
+        toString[toString_] = toStringToString;
         return toString[globalID] = {};
       };
     }
@@ -169,8 +165,8 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
     function get(o){ return this.unlock(o).value }
     function set(o, v){ this.unlock(o).value = v }
-    define(Data.prototype, get);
-    define(Data.prototype, set);
+    define(Data[prototype_], get);
+    define(Data[prototype_], set);
 
     return Data;
   }());
@@ -194,7 +190,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       }();
       for (var i=0; i < def.length; i++) {
         define(def[i], toString);
-        define(Ctor.prototype, def[i]);
+        define(Ctor[prototype_], def[i]);
       }
       define(Ctor, toString);
       return Ctor;
@@ -209,13 +205,13 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
         function(collection, value){
           var store = data.unlock(collection);
           if (store.value)
-            throw new TypeError(classname + " has already been initialized.");
+            throw new TypeError("Object is already a " + classname);
           store.value = value;
         },
         function(collection){
           var storage = data.unlock(collection).value;
           if (!storage)
-            throw new TypeError(classname + " is not generic.");
+            throw new TypeError(classname + " is not generic");
           return storage;
         }
       ));
@@ -224,7 +220,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
 
   var initialize = function(iterable, callback){
-    if (iterable !== null && typeof iterable === 'object' && typeof iterable.forEach === 'function') {
+    if (iterable !== null && typeof iterable === object_ && typeof iterable.forEach === function_) {
       iterable.forEach(function(item, i){
         if (item instanceof Array && item.length === 2)
           callback(iterable[i][0], iterable[i][1]);
@@ -240,10 +236,10 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ###############
 
   var WeakMap = exporter('WeakMap', function(wrap, unwrap){
-    var prototype = WeakMap.prototype;
+    var prototype = WeakMap[prototype_];
     var validate = function(key){
-      if (key == null || typeof key !== 'object' && typeof key !== 'function')
-        throw new TypeError("WeakMap keys must be objects");
+      if (key == null || typeof key !== object_ && typeof key !== function_)
+        throw new TypeError("Invalid WeakMap key");
     }
 
     /**
@@ -272,7 +268,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     function get(key){
       validate(key);
       var value = unwrap(this).get(key);
-      return value === UNDEFINED ? undefined : value;
+      return value === undefined_ ? undefined : value;
     }
     /**
      * @method       <set>
@@ -283,7 +279,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     function set(key, value){
       validate(key);
       // store a token for explicit undefined so that "has" works correctly
-      unwrap(this).set(key, value === undefined ? UNDEFINED : value);
+      unwrap(this).set(key, value === undefined ? undefined_ : value);
     }
     /*
      * @method       <has>
@@ -313,21 +309,21 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
 
     return [WeakMap, get, set, has, delete_];
-  });
+  }),
 
 
   // ###############
   // ### HashMap ###
   // ###############
 
-  var HashMap = exporter('HashMap', function(wrap, unwrap){
-    var prototype = HashMap.prototype;
-    var STRING = 0, NUMBER = 1, OTHER = 2;
-    var others = { 'true': true, 'false': false, 'null': null, 0: -0 };
+  HashMap = exporter('HashMap', function(wrap, unwrap){
+    var prototype = HashMap[prototype_],
+        STRING = 0, NUMBER = 1, OTHER = 2,
+        others = { 'true': true, 'false': false, 'null': null, 0: -0 };
 
     if ('toString' in create(null)) {
       var coerce = function(key){
-        return typeof key === 'string' ? '_'+key : ''+key;
+        return typeof key === string_ ? '_'+key : ''+key;
       };
       var uncoerceString = function(key){
         return key.slice(1);
@@ -351,9 +347,9 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
       if (key == null) return OTHER;
       switch (typeof key) {
         case 'boolean': return OTHER;
-        case 'string': return STRING;
+        case string_: return STRING;
         case 'number': return key === 0 && Infinity / key === -Infinity ? OTHER : NUMBER;
-        default: throw new TypeError("HashMap keys must be primitive");
+        default: throw new TypeError("Invalid HashMap key");
       }
     }
 
@@ -452,24 +448,24 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
 
     return [HashMap, get, set, has, delete_, size, forEach];
-  });
+  }),
 
 
   // ###########
   // ### Map ###
   // ###########
 
-  var Map = exporter('Map', function(wrap, unwrap){
-    var prototype = Map.prototype,
-        wm = WeakMap.prototype,
-        hm = HashMap.prototype,
+  Map = exporter('Map', function(wrap, unwrap){
+    var prototype = Map[prototype_],
+        wm = WeakMap[prototype_],
+        hm = HashMap[prototype_],
         mget    = [hm.get, wm.get],
         mset    = [hm.set, wm.set],
         mhas    = [hm.has, wm.has],
         mdelete = [hm['delete'], wm['delete']];
 
     var type = function(o){
-      return o != null && typeof o === 'object' || typeof o === 'function' ? 1 : 0;
+      return o != null && typeof o === object_ || typeof o === function_ ? 1 : 0;
     }
 
     /**
@@ -579,7 +575,7 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
     }
 
     return [Map, get, set, has, delete_, size, forEach];
-  });
+  })
 
 
 
@@ -587,9 +583,9 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
   // ### Set ###
   // ###########
 
-  var Set = exporter('Set', function(wrap, unwrap){
-    var prototype = Set.prototype,
-        m = Map.prototype,
+  Set = exporter('Set', function(wrap, unwrap){
+    var prototype = Set[prototype_],
+        m = Map[prototype_],
         msize = m.size,
         mforEach = m.forEach,
         mget = m.get,
@@ -663,5 +659,6 @@ void function(TOSTRING, Object, FP, global, exports, UNDEFINED, undefined){
 
     return [Set, add, has, delete_, size, forEach];
   });
-}('toString', Object, Function.prototype, Function('return this')(), typeof exports === 'undefined' ? this : exports, {});
+}('string', 'object', 'function', 'prototype', 'toString', Object, Function.prototype, Function('return this')(),
+   typeof exports === 'undefined' ? this : exports, {});
 
