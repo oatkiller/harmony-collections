@@ -3,7 +3,7 @@
   "name": "harmony-collections",
   "description": "Shim to provide Map, Set, and WeakMap if they're not available, with non-leaky O(1) lookup WeakMaps",
   "keywords": ["harmony", "collection", "weakmap", "map", "set", "ecmascript", "es6", "shim", "garbage collection", "gc"],
-  "version": "0.3.6",
+  "version": "0.3.7",
   "homepage": "http://benvie.github.com/harmony-collections",
   "repository": {
     "type": "git",
