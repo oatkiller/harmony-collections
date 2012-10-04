@@ -46,6 +46,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
       call = callbind(FP.call),
       apply = callbind(FP.apply),
       hasOwn = callbind({}.hasOwnProperty),
+      push = callbind([].push),
       splice = callbind([].splice);
 
   var name = function(f){
@@ -165,7 +166,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
 
       secret[iuid] = { writable: true, value: undefined };
 
-      function attach(obj){
+      var attach = function(obj){
         var store = storage(obj);
         if (hasOwn(store, puid))
           return store[puid](secret);
@@ -175,7 +176,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
           value: new Function('s', 'l', locker)(secret, lockbox)
         });
         return lockbox;
-      }
+      };
 
       this.get = function(o){
         return attach(o)[iuid];
@@ -185,18 +186,16 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
       };
 
       if (name) {
-        this.name = name;
-
         this.wrap = function(o, v){
           var lockbox = attach(o);
           if (lockbox[iuid])
-            throw new TypeError("Object is already a " + this.name);
+            throw new TypeError("Object is already a " + name);
           lockbox[iuid] = v;
         };
         this.unwrap = function(o){
           var storage = attach(o)[iuid];
           if (!storage)
-            throw new TypeError(this.name + " is not generic");
+            throw new TypeError(name + " is not generic");
           return storage;
         }
       }
@@ -503,10 +502,10 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     var prototype = Map[prototype_],
         wm = WeakMap[prototype_],
         hm = HashMap[prototype_],
-        mget    = [hm.get, wm.get],
-        mset    = [hm.set, wm.set],
-        mhas    = [hm.has, wm.has],
-        mdelete = [hm['delete'], wm['delete']];
+        mget    = [callbind(hm.get), callbind(wm.get)],
+        mset    = [callbind(hm.set), callbind(wm.set)],
+        mhas    = [callbind(hm.has), callbind(wm.has)],
+        mdelete = [callbind(hm['delete']), callbind(wm['delete'])];
 
     var type = function(o){
       return o != null && typeof o === object_ || typeof o === function_ ? 1 : 0;
@@ -542,7 +541,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     function get(key){
       var data = unwrap(this),
           t = type(key);
-      return data.values[mget[t].call(data[t], key)];
+      return data.values[mget[t](data[t], key)];
     }
     /**
      * @method       <set>
@@ -553,12 +552,12 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     function set(key, value){
       var data = unwrap(this),
           t = type(key),
-          index = mget[t].call(data[t], key);
+          index = mget[t](data[t], key);
 
       if (index === undefined) {
-        mset[t].call(data[t], key, data.keys.length);
-        data.keys.push(key);
-        data.values.push(value);
+        mset[t](data[t], key, data.keys.length);
+        push(data.keys, key);
+        push(data.values, value);
       } else {
         data.keys[index] = key;
         data.values[index] = value;
@@ -572,7 +571,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
      **/
     function has(key){
       var t = type(key);
-      return call(mhas[t], unwrap(this)[t], key);
+      return mhas[t](unwrap(this)[t], key);
     }
     /**
      * @method       <delete>
@@ -583,12 +582,12 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     function delete_(key){
       var data = unwrap(this),
           t = type(key),
-          index = call(mget[t], data[t], key);
+          index = mget[t](data[t], key);
 
       if (index === undefined)
         return false;
 
-      call(mdelete[t], data[t], key);
+      mdelete[t](data[t], key);
       splice(data.keys, index, 1);
       splice(data.values, index, 1);
       return true;
@@ -634,12 +633,12 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
   Set = exporter('Set', function(wrap, unwrap){
     var prototype = Set[prototype_],
         m = Map[prototype_],
-        msize = m.size,
-        mforEach = m.forEach,
-        mget = m.get,
-        mset = m.set,
-        mhas = m.has,
-        mdelete = m['delete'];
+        msize = callbind(m.size),
+        mforEach = callbind(m.forEach),
+        mget = callbind(m.get),
+        mset = callbind(m.set),
+        mhas = callbind(m.has),
+        mdelete = callbind(m['delete']);
 
     /**
      * @class        Set
@@ -663,7 +662,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
      * @param        {Any} val
      */
     function add(key){
-      call(mset, unwrap(this), key, key);
+      mset(unwrap(this), key, key);
     }
     /**
      * @method       <has>
@@ -672,7 +671,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
      * @return       {Boolean} is in collection
      **/
     function has(key){
-      return call(mhas, unwrap(this), key);
+      return mhas(unwrap(this), key);
     }
     /**
      * @method       <delete>
@@ -681,7 +680,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
      * @return       {Boolean} true if item was in collection
      */
     function delete_(key){
-      return call(mdelete, unwrap(this), key);
+      return mdelete(unwrap(this), key);
     }
     /**
      * @method       <size>
@@ -689,7 +688,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
      * @return       {Number}
      */
     function size(){
-      return call(msize, unwrap(this));
+      return msize(unwrap(this));
     }
     /**
      * @method       <forEach>
@@ -700,12 +699,12 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     function forEach(callback, context){
       var index = 0,
           self = this;
-      call(mforEach, unwrap(this, function(key){
+      mforEach(unwrap(this, function(key){
         call(callback, this, key, index++, self);
       }, context));
     }
 
-    delete_ = fixDelete(delete_, ['call', 'mdelete', 'unwrap'], [call, mdelete, unwrap]);
+    delete_ = fixDelete(delete_, ['mdelete', 'unwrap'], [mdelete, unwrap]);
     return [Set, add, has, delete_, size, forEach];
   });
 }('string', 'object', 'function', 'prototype', 'toString',
