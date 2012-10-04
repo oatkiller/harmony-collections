@@ -31,9 +31,9 @@ void function(string_, object_, function_, prototype_, toString_,
   var callbind = FP.bind
     ? FP.bind.bind(FP.call)
     : (function(call){
-        return function(fn){
+        return function(func){
           return function(){
-            return call.apply(fn, arguments);
+            return call.apply(func, arguments);
           };
         };
       }(FP.call));
@@ -47,43 +47,43 @@ void function(string_, object_, function_, prototype_, toString_,
       push = callbind([].push),
       splice = callbind([].splice);
 
-  var name = function(f){
-    if (typeof f !== function_)
+  var name = function(func){
+    if (typeof func !== function_)
       return '';
-    else if ('name' in f)
-      return f.name;
+    else if ('name' in func)
+      return func.name;
 
-    return functionToString(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
+    return functionToString(func).match(/^\n?function\s?(\w*)?_?\(/)[1];
   };
 
   var create = es5
     ? Object.create
     : function(proto, descs){
-        var Ctor = function(){}
+        var Ctor = function(){};
         Ctor[prototype_] = Object(proto);
-        var out = new Ctor;
+        var object = new Ctor;
 
         if (descs)
-          for (var k in descs)
-            defineProperty(out, k, descs[k]);
+          for (var key in descs)
+            defineProperty(object, key, descs[k]);
 
-        return out;
+        return object;
       };
 
   var defineProperty = es5
     ? Object.defineProperty
-    : function(o, k, desc) {
-        o[k] = desc.value;
-        return o;
+    : function(object, key, desc) {
+        object[key] = desc.value;
+        return object;
       };
 
-  var define = function(o, k, v){
-    if (typeof k === function_) {
-      v = k;
-      k = name(v).replace(/_$/, '');
+  var define = function(object, key, value){
+    if (typeof key === function_) {
+      value = key;
+      key = name(value).replace(/_$/, '');
     }
 
-    return defineProperty(o, k, { configurable: true, writable: true, value: v });
+    return defineProperty(object, key, { configurable: true, writable: true, value: value });
   };
 
   var isArray = es5
@@ -156,7 +156,8 @@ void function(string_, object_, function_, prototype_, toString_,
 
 
 
-    function Data(name){
+    // shim for [[MapData]] from es6 spec, and pulls double duty as WeakMap storage
+    function MapData(name){
       var puid = createUID(),
           iuid = createUID(),
           secret = {};
@@ -198,35 +199,39 @@ void function(string_, object_, function_, prototype_, toString_,
       }
     }
 
-    return Data;
+    return MapData;
   }());
 
-
   var exporter = (function(){
+    // [native code] looks slightly different in each engine
     var src = (''+Object).split('Object');
 
+    // fake [native code]
     function toString(){
       return src[0] + name(this) + src[1];
     }
 
     define(toString, toString);
 
+    // attempt to use __proto__ so the methods don't all have an own toString
     var prepFunction = { __proto__: [] } instanceof Array
-      ? function(f){ f.__proto__ = toString }
-      : function(f){ define(f, toString) };
+      ? function(func){ func.__proto__ = toString }
+      : function(func){ define(func, toString) };
 
-    var prepare = function(def){
-      var Ctor = def.shift();
-      void function(){
-        var brand = '[object ' + name(Ctor) + ']';
-        function toString(){ return brand }
-        def.push(toString);
-      }();
-      for (var i=0; i < def.length; i++) {
-        prepFunction(def[i]);
-        define(Ctor[prototype_], def[i]);
-      }
+    // assemble an array of functions into a fully formed class
+    var prepare = function(methods){
+      var Ctor = methods.shift(),
+          brand = '[object ' + name(Ctor) + ']';
+
+      function toString(){ return brand }
+      methods.push(toString);
       prepFunction(Ctor);
+
+      for (var i=0; i < methods.length; i++) {
+        prepFunction(methods[i]);
+        define(Ctor[prototype_], methods[i]);
+      }
+
       return Ctor;
     };
 
@@ -234,7 +239,7 @@ void function(string_, object_, function_, prototype_, toString_,
       if (name in exports)
         return exports[name];
 
-      var data = new Data(name);
+      var data = new MapData(name);
 
       return exports[name] = prepare(init(
         function(collection, value){
@@ -248,6 +253,7 @@ void function(string_, object_, function_, prototype_, toString_,
   }());
 
 
+  // initialize collection with an iterable, currently only supports forEach function
   var initialize = function(iterable, callback){
     if (iterable !== null && typeof iterable === object_ && typeof iterable.forEach === function_) {
       iterable.forEach(function(item, i){
@@ -259,7 +265,7 @@ void function(string_, object_, function_, prototype_, toString_,
     }
   }
 
-
+  // attempt to fix the name of "delete_" methods, should work in V8 and spidermonkey
   var fixDelete = function(func, scopeNames, scopeValues){
     try {
       scopeNames[scopeNames.length] = ('return '+func).replace('e_', '\\u0065');
@@ -290,7 +296,7 @@ void function(string_, object_, function_, prototype_, toString_,
       if (this === global || this == null || this === prototype)
         return new WeakMap(iterable);
 
-      wrap(this, new Data);
+      wrap(this, new MapData);
 
       var self = this;
       iterable && initialize(iterable, function(value, key){
@@ -356,11 +362,14 @@ void function(string_, object_, function_, prototype_, toString_,
   // ###############
 
   var HM = exporter('HashMap', function(wrap, unwrap){
+    // separate numbers, strings, and atoms to compensate for key coercion to string
+
     var prototype = HashMap[prototype_],
         STRING = 0, NUMBER = 1, OTHER = 2,
         others = { 'true': true, 'false': false, 'null': null, 0: -0 };
 
     if ('toString' in create(null)) {
+      // in ie8 make an attempt to prevent Object.prototype builtins from intruding
       var coerce = function(key){
         return typeof key === string_ ? '_'+key : ''+key;
       };
@@ -368,6 +377,7 @@ void function(string_, object_, function_, prototype_, toString_,
         return key.slice(1);
       }
     } else {
+      // otherwise we have Object.create(null) so let the engine know to inline this noop function
       var uncoerceString = coerce = function(key){
         return key;
       };
@@ -387,6 +397,7 @@ void function(string_, object_, function_, prototype_, toString_,
       switch (typeof key) {
         case 'boolean': return OTHER;
         case string_: return STRING;
+        // negative zero has to be explicitly accounted for
         case 'number': return key === 0 && Infinity / key === -Infinity ? OTHER : NUMBER;
         default: throw new TypeError("Invalid HashMap key");
       }
