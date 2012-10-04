@@ -22,12 +22,41 @@
 // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
 // Expanded by Benvie @ https://github.com/Benvie/harmony-collections
 
-void function(string_, object_, function_, prototype_, toString_, Object, FP, global, exports, undefined_, undefined){
+void function(string_, object_, function_, prototype_, toString_, Array, Object, Function, FP, global, exports, undefined_, undefined){
   "use strict";
 
   var getProperties = Object.getOwnPropertyNames,
-      es5 = typeof getProperties === function_ && !(prototype_ in getProperties),
-      hasOwnProperty = Object[prototype_].hasOwnProperty;
+      es5 = typeof getProperties === function_ && !(prototype_ in getProperties);
+
+  if (FP.bind) {
+    var callbind = FP.bind.bind(FP.call);
+  } else {
+    var callbind = (function(call){
+      return function(fn){
+        return function(){
+          return call.apply(fn, arguments);
+        };
+      };
+    }(FP.call));
+  }
+
+  var functionToString = callbind(FP[toString_]),
+      objectToString = callbind({}[toString_]),
+      numberToString = callbind(.0.toString),
+      call = callbind(FP.call),
+      apply = callbind(FP.apply),
+      hasOwn = callbind({}.hasOwnProperty),
+      splice = callbind([].splice);
+
+  var name = function(f){
+    if (typeof f !== function_)
+      return '';
+    else if ('name' in f)
+      return f.name;
+
+    return functionToString(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
+  };
+
 
   var create = es5
     ? Object.create
@@ -46,8 +75,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
   var defineProperty = es5
     ? Object.defineProperty
     : function(o, k, desc) {
-        if ('value' in desc)
-          o[k] = desc.value;
+        o[k] = desc.value;
         return o;
       };
 
@@ -60,39 +88,29 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
     return defineProperty(o, k, { configurable: true, writable: true, value: v });
   };
 
-  var name = function(f){
-    if (typeof f !== function_)
-      return '';
-    else if ('name' in f)
-      return f.name;
-
-    return FP[toString_].call(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
-  };
-
-  var callbind = function(fn){
-    return function(){
-      return _call.apply(fn, arguments);
-    };
-  };
-
-  var _call = FP.call,
-      _apply = FP.apply,
-      call = callbind(_call),
-      apply = callbind(_apply);
-
-
+  var isArray = es5
+    ? (function(isArray){
+        return function(o){
+          return isArray(o) || o instanceof Array;
+        };
+      })(Array.isArray)
+    : function(o){
+        return o instanceof Array || objectToString(o) === '[object Array]';
+      };
 
   // ############
   // ### Data ###
   // ############
 
   var Data = (function(){
-    var lockboxDesc = { value: { writable: true, value: undefined } },
-        locker = 'return function(k){if(k===s)return l}',
-        uids = create(null);
+    var locker = 'return function(k){if(k===s)return l}',
+        random = Math.random,
+        uids = create(null),
+        slice = callbind(''.slice),
+        indexOf = callbind([].indexOf);
 
     var createUID = function(){
-      var key = Math.random()[toString_](36).slice(2);
+      var key = slice(numberToString(random(), 36), 2);
       return key in uids ? createUID() : uids[key] = key;
     };
 
@@ -101,23 +119,17 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
     // common per-object storage area made visible by patching getOwnPropertyNames'
     function getOwnPropertyNames(obj){
       var props = getProperties(obj);
-      if (hasOwnProperty.call(obj, globalID))
-        props.splice(props.indexOf(globalID), 1);
+      if (hasOwn(obj, globalID))
+        splice(props, indexOf(props, globalID), 1);
       return props;
     }
 
     if (es5) {
       // check for the random key on an object, create new storage if missing, return it
       var storage = function(obj){
-        if (hasOwnProperty.call(obj, globalID))
-          return obj[globalID];
-
-        if (!Object.isExtensible(obj))
-          throw new TypeError("Object must be extensible");
-
-        var store = create(null);
-        defineProperty(obj, globalID, { value: store });
-        return store;
+        if (!hasOwn(obj, globalID))
+          defineProperty(obj, globalID, { value: create(null) });
+        return obj[globalID];
       };
 
       define(Object, getOwnPropertyNames);
@@ -130,7 +142,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
 
       // store the values on a custom valueOf in order to hide them but store them locally
       var storage = function(obj){
-        if (hasOwnProperty.call(obj, toString_) && globalID in obj[toString_])
+        if (hasOwn(obj, toString_) && globalID in obj[toString_])
           return obj[toString_][globalID];
 
         if (!(toString_ in obj))
@@ -146,27 +158,49 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
 
 
 
-    function Data(){
+    function Data(name){
       var puid = createUID(),
+          iuid = createUID(),
           secret = {};
 
-      this.unlock = function(obj){
+      secret[iuid] = { writable: true, value: undefined };
+
+      function attach(obj){
         var store = storage(obj);
-        if (hasOwnProperty.call(store, puid))
+        if (hasOwn(store, puid))
           return store[puid](secret);
 
-        var lockbox = create(null, lockboxDesc);
+        var lockbox = create(null, secret);
         defineProperty(store, puid, {
           value: new Function('s', 'l', locker)(secret, lockbox)
         });
         return lockbox;
       }
-    }
 
-    function get(o){ return this.unlock(o).value }
-    function set(o, v){ this.unlock(o).value = v }
-    define(Data[prototype_], get);
-    define(Data[prototype_], set);
+      this.get = function(o){
+        return attach(o)[iuid];
+      };
+      this.set = function(o, v){
+        return attach(o)[iuid] = v;
+      };
+
+      if (name) {
+        this.name = name;
+
+        this.wrap = function(o, v){
+          var lockbox = attach(o);
+          if (lockbox[iuid])
+            throw new TypeError("Object is already a " + this.name);
+          lockbox[iuid] = v;
+        };
+        this.unwrap = function(o){
+          var storage = attach(o)[iuid];
+          if (!storage)
+            throw new TypeError(this.name + " is not generic");
+          return storage;
+        }
+      }
+    }
 
     return Data;
   }());
@@ -181,6 +215,10 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
 
     define(toString, toString);
 
+    var prepFunction = { __proto__: [] } instanceof Array
+      ? function(f){ f.__proto__ = toString }
+      : function(f){ define(f, toString) };
+
     var prepare = function(def){
       var Ctor = def.shift();
       void function(){
@@ -189,30 +227,25 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
         def.push(toString);
       }();
       for (var i=0; i < def.length; i++) {
-        define(def[i], toString);
+        prepFunction(def[i]);
         define(Ctor[prototype_], def[i]);
       }
-      define(Ctor, toString);
+      prepFunction(Ctor);
       return Ctor;
     }
 
-    return function(classname, init){
-      if (classname in exports) return exports[classname];
+    return function(name, init){
+      if (name in exports)
+        return exports[name];
 
-      var data = new Data;
+      var data = new Data(name);
 
-      return exports[classname] = prepare(init(
+      return exports[name] = prepare(init(
         function(collection, value){
-          var store = data.unlock(collection);
-          if (store.value)
-            throw new TypeError("Object is already a " + classname);
-          store.value = value;
+          data.wrap(collection, value);
         },
         function(collection){
-          var storage = data.unlock(collection).value;
-          if (!storage)
-            throw new TypeError(classname + " is not generic");
-          return storage;
+          return data.unwrap(collection);
         }
       ));
     };
@@ -222,7 +255,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
   var initialize = function(iterable, callback){
     if (iterable !== null && typeof iterable === object_ && typeof iterable.forEach === function_) {
       iterable.forEach(function(item, i){
-        if (item instanceof Array && item.length === 2)
+        if (isArray(item) && item.length === 2)
           callback(iterable[i][0], iterable[i][1]);
         else
           callback(iterable[i], i);
@@ -230,6 +263,15 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
     }
   }
 
+
+  var fixDelete = function(func, scopeNames, scopeValues){
+    try {
+      scopeNames[scopeNames.length] = ('return '+func).replace('e_', '\\u0065');
+      return Function.apply(0, scopeNames).apply(0, scopeValues);
+    } catch (e) {
+      return func;
+    }
+  }
 
   // ###############
   // ### WeakMap ###
@@ -308,6 +350,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
       return true;
     }
 
+    delete_ = fixDelete(delete_, ['validate', 'unwrap'], [validate, unwrap]);
     return [WeakMap, get, set, has, delete_];
   }),
 
@@ -447,6 +490,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
           call(callback, context, data[i][key], uncoerce(i, key), this);
     }
 
+    delete_ = fixDelete(delete_, ['validate', 'unwrap', 'coerce'], [validate, unwrap, coerce]);
     return [HashMap, get, set, has, delete_, size, forEach];
   }),
 
@@ -528,7 +572,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
      **/
     function has(key){
       var t = type(key);
-      return mhas[t].call(unwrap(this)[t], key);
+      return call(mhas[t], unwrap(this)[t], key);
     }
     /**
      * @method       <delete>
@@ -539,14 +583,14 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
     function delete_(key){
       var data = unwrap(this),
           t = type(key),
-          index = mget[t].call(data[t], key);
+          index = call(mget[t], data[t], key);
 
       if (index === undefined)
         return false;
 
-      mdelete[t].call(data[t], key);
-      data.keys.splice(index, 1);
-      data.values.splice(index, 1);
+      call(mdelete[t], data[t], key);
+      splice(data.keys, index, 1);
+      splice(data.values, index, 1);
       return true;
     }
     /**
@@ -574,6 +618,10 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
         call(callback, context, values[i], keys[i], this);
     }
 
+    delete_ = fixDelete(delete_,
+      ['type', 'unwrap', 'call', 'splice'],
+      [type, unwrap, call, splice]
+    );
     return [Map, get, set, has, delete_, size, forEach];
   })
 
@@ -615,7 +663,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
      * @param        {Any} val
      */
     function add(key){
-      mset.call(unwrap(this), key, key);
+      call(mset, unwrap(this), key, key);
     }
     /**
      * @method       <has>
@@ -624,7 +672,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
      * @return       {Boolean} is in collection
      **/
     function has(key){
-      return mhas.call(unwrap(this), key);
+      return call(mhas, unwrap(this), key);
     }
     /**
      * @method       <delete>
@@ -633,7 +681,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
      * @return       {Boolean} true if item was in collection
      */
     function delete_(key){
-      return mdelete.call(unwrap(this), key);
+      return call(mdelete, unwrap(this), key);
     }
     /**
      * @method       <size>
@@ -641,7 +689,7 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
      * @return       {Number}
      */
     function size(){
-      return msize.call(unwrap(this));
+      return call(msize, unwrap(this));
     }
     /**
      * @method       <forEach>
@@ -652,13 +700,14 @@ void function(string_, object_, function_, prototype_, toString_, Object, FP, gl
     function forEach(callback, context){
       var index = 0,
           self = this;
-      mforEach.call(unwrap(this, function(key){
+      call(mforEach, unwrap(this, function(key){
         call(callback, this, key, index++, self);
       }, context));
     }
 
+    delete_ = fixDelete(delete_, ['call', 'mdelete', 'unwrap'], [call, mdelete, unwrap]);
     return [Set, add, has, delete_, size, forEach];
   });
-}('string', 'object', 'function', 'prototype', 'toString', Object, Function.prototype, Function('return this')(),
-   typeof exports === 'undefined' ? this : exports, {});
-
+}('string', 'object', 'function', 'prototype', 'toString',
+  Array, Object, Function, Function.prototype, (0, eval)('this'),
+  typeof exports === 'undefined' ? this : exports, {});
