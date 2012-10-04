@@ -272,7 +272,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
   // ### WeakMap ###
   // ###############
 
-  var WeakMap = exporter('WeakMap', function(wrap, unwrap){
+  var WM = exporter('WeakMap', function(wrap, unwrap){
     var prototype = WeakMap[prototype_];
     var validate = function(key){
       if (key == null || typeof key !== object_ && typeof key !== function_)
@@ -347,14 +347,14 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
 
     delete_ = fixDelete(delete_, ['validate', 'unwrap'], [validate, unwrap]);
     return [WeakMap, get, set, has, delete_];
-  }),
+  });
 
 
   // ###############
   // ### HashMap ###
   // ###############
 
-  HashMap = exporter('HashMap', function(wrap, unwrap){
+  var HM = exporter('HashMap', function(wrap, unwrap){
     var prototype = HashMap[prototype_],
         STRING = 0, NUMBER = 1, OTHER = 2,
         others = { 'true': true, 'false': false, 'null': null, 0: -0 };
@@ -487,17 +487,17 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
 
     delete_ = fixDelete(delete_, ['validate', 'unwrap', 'coerce'], [validate, unwrap, coerce]);
     return [HashMap, get, set, has, delete_, size, forEach];
-  }),
+  });
 
 
   // ###########
   // ### Map ###
   // ###########
 
-  Map = exporter('Map', function(wrap, unwrap){
+  var M = exporter('Map', function(wrap, unwrap){
     var prototype = Map[prototype_],
-        wm = WeakMap[prototype_],
-        hm = HashMap[prototype_],
+        wm = WM[prototype_],
+        hm = HM[prototype_],
         mget    = [callbind(hm.get), callbind(wm.get)],
         mset    = [callbind(hm.set), callbind(wm.set)],
         mhas    = [callbind(hm.has), callbind(wm.has)],
@@ -517,8 +517,8 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
         return new Map(iterable);
 
       wrap(this, {
-        0: new HashMap,
-        1: new WeakMap,
+        0: new HM,
+        1: new WM,
         keys: [],
         values: []
       });
@@ -618,7 +618,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
       [type, unwrap, call, splice]
     );
     return [Map, get, set, has, delete_, size, forEach];
-  }),
+  });
 
 
 
@@ -626,9 +626,9 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
   // ### Set ###
   // ###########
 
-  Set = exporter('Set', function(wrap, unwrap){
+  exporter('Set', function(wrap, unwrap){
     var prototype = Set[prototype_],
-        m = Map[prototype_],
+        m = M[prototype_],
         msize = callbind(m.size),
         mforEach = callbind(m.forEach),
         mget = callbind(m.get),
@@ -645,7 +645,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
       if (this === global || this == null || this === prototype)
         return new Set(iterable);
 
-      wrap(this, new Map);
+      wrap(this, new M);
 
       var self = this;
       iterable && initialize(iterable, function(value, key){
