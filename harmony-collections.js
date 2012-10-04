@@ -22,7 +22,8 @@
 // Updated and bugfixed by Raynos @ https://gist.github.com/1638059
 // Expanded by Benvie @ https://github.com/Benvie/harmony-collections
 
-void function(string_, object_, function_, prototype_, toString_, Array, Object, Function, FP, global, exports, undefined_, undefined){
+void function(string_, object_, function_, prototype_, toString_,
+              Array, Object, Function, FP, global, exports, undefined_, undefined){
 
   var getProperties = Object.getOwnPropertyNames,
       es5 = typeof getProperties === function_ && !(prototype_ in getProperties);
@@ -227,7 +228,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
       }
       prepFunction(Ctor);
       return Ctor;
-    }
+    };
 
     return function(name, init){
       if (name in exports)
@@ -277,7 +278,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     var validate = function(key){
       if (key == null || typeof key !== object_ && typeof key !== function_)
         throw new TypeError("Invalid WeakMap key");
-    }
+    };
 
     /**
      * @class        WeakMap
@@ -451,7 +452,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
      * @return       {Boolean} true if item was in collection
      */
     function delete_(key){
-      var items = unwrap(this);
+      var items = unwrap(this),
           data = items[validate(key)];
 
       key = coerce(key);
