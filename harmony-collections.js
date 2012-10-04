@@ -23,22 +23,19 @@
 // Expanded by Benvie @ https://github.com/Benvie/harmony-collections
 
 void function(string_, object_, function_, prototype_, toString_, Array, Object, Function, FP, global, exports, undefined_, undefined){
-  "use strict";
 
   var getProperties = Object.getOwnPropertyNames,
       es5 = typeof getProperties === function_ && !(prototype_ in getProperties);
 
-  if (FP.bind) {
-    var callbind = FP.bind.bind(FP.call);
-  } else {
-    var callbind = (function(call){
-      return function(fn){
-        return function(){
-          return call.apply(fn, arguments);
+  var callbind = FP.bind
+    ? FP.bind.bind(FP.call)
+    : (function(call){
+        return function(fn){
+          return function(){
+            return call.apply(fn, arguments);
+          };
         };
-      };
-    }(FP.call));
-  }
+      }(FP.call));
 
   var functionToString = callbind(FP[toString_]),
       objectToString = callbind({}[toString_]),
@@ -58,14 +55,13 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
     return functionToString(f).match(/^\n?function\s?(\w*)?_?\(/)[1];
   };
 
-
   var create = es5
     ? Object.create
     : function(proto, descs){
         var Ctor = function(){}
         Ctor[prototype_] = Object(proto);
-
         var out = new Ctor;
+
         if (descs)
           for (var k in descs)
             defineProperty(out, k, descs[k]);
@@ -197,7 +193,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
           if (!storage)
             throw new TypeError(name + " is not generic");
           return storage;
-        }
+        };
       }
     }
 
@@ -622,7 +618,7 @@ void function(string_, object_, function_, prototype_, toString_, Array, Object,
       [type, unwrap, call, splice]
     );
     return [Map, get, set, has, delete_, size, forEach];
-  })
+  }),
 
 
 
