@@ -100,7 +100,7 @@ void function(string_, object_, function_, prototype_, toString_,
   // ### Data ###
   // ############
 
-  var Data = (function(){
+  var MapData = (function(){
     var locker = 'return function(k){if(k===s)return l}',
         random = Math.random,
         uids = create(null),
@@ -377,9 +377,16 @@ void function(string_, object_, function_, prototype_, toString_,
         return key.slice(1);
       }
     } else {
-      // otherwise we have Object.create(null) so let the engine know to inline this noop function
-      var uncoerceString = coerce = function(key){
-        return key;
+      var proto = Math.random().toString(36).slice(2);
+
+      // otherwise just protect against __proto__ tainting
+
+      var uncoerceString = function(key){
+        return key === proto ? '__proto__' : key;
+      };
+
+      var coerce = function(key){
+        return key === '__proto__' ? proto : key;
       };
     }
 
@@ -718,3 +725,4 @@ void function(string_, object_, function_, prototype_, toString_,
 }('string', 'object', 'function', 'prototype', 'toString',
   Array, Object, Function, Function.prototype, (0, eval)('this'),
   typeof exports === 'undefined' ? this : exports, {});
+
