@@ -100,107 +100,143 @@ void function(string_, object_, function_, prototype_, toString_,
   // ### Data ###
   // ############
 
-  var MapData = (function(){
-    var locker = 'return function(k){if(k===s)return l}',
-        random = Math.random,
-        uids = create(null),
-        slice = callbind(''.slice),
-        indexOf = callbind([].indexOf);
+  var builtinWeakMap = 'WeakMap' in global;
 
-    var createUID = function(){
-      var key = slice(numberToString(random(), 36), 2);
-      return key in uids ? createUID() : uids[key] = key;
-    };
+  var MapData = builtinWeakMap
+    ? (function(){
+      var BuiltinWeakMap = global.WeakMap,
+          wmget = callbind(BuiltinWeakMap[prototype_].get),
+          wmset = callbind(BuiltinWeakMap[prototype_].set),
+          wmhas = callbind(BuiltinWeakMap[prototype_].has);
 
-    var globalID = createUID();
+      function MapData(name){
+        var map = new BuiltinWeakMap;
 
-    // common per-object storage area made visible by patching getOwnPropertyNames'
-    function getOwnPropertyNames(obj){
-      var props = getProperties(obj);
-      if (hasOwn(obj, globalID))
-        splice(props, indexOf(props, globalID), 1);
-      return props;
-    }
-
-    if (es5) {
-      // check for the random key on an object, create new storage if missing, return it
-      var storage = function(obj){
-        if (!hasOwn(obj, globalID))
-          defineProperty(obj, globalID, { value: create(null) });
-        return obj[globalID];
-      };
-
-      define(Object, getOwnPropertyNames);
-    } else {
-
-      var toStringToString = function(s){
-        function toString(){ return s }
-        return toString[toString_] = toString;
-      }(Object[prototype_][toString_]+'');
-
-      // store the values on a custom valueOf in order to hide them but store them locally
-      var storage = function(obj){
-        if (hasOwn(obj, toString_) && globalID in obj[toString_])
-          return obj[toString_][globalID];
-
-        if (!(toString_ in obj))
-          throw new Error("Can't store values for "+obj);
-
-        var oldToString = obj[toString_];
-        function toString(){ return oldToString.call(this) }
-        obj[toString_] = toString;
-        toString[toString_] = toStringToString;
-        return toString[globalID] = {};
-      };
-    }
-
-
-
-    // shim for [[MapData]] from es6 spec, and pulls double duty as WeakMap storage
-    function MapData(name){
-      var puid = createUID(),
-          iuid = createUID(),
-          secret = {};
-
-      secret[iuid] = { writable: true, value: undefined };
-
-      var attach = function(obj){
-        var store = storage(obj);
-        if (hasOwn(store, puid))
-          return store[puid](secret);
-
-        var lockbox = create(null, secret);
-        defineProperty(store, puid, {
-          value: new Function('s', 'l', locker)(secret, lockbox)
-        });
-        return lockbox;
-      };
-
-      this.get = function(o){
-        return attach(o)[iuid];
-      };
-      this.set = function(o, v){
-        return attach(o)[iuid] = v;
-      };
-
-      if (name) {
-        this.wrap = function(o, v){
-          var lockbox = attach(o);
-          if (lockbox[iuid])
-            throw new TypeError("Object is already a " + name);
-          lockbox[iuid] = v;
+        this.get = function(o){
+          return wmget(map, o);
         };
-        this.unwrap = function(o){
-          var storage = attach(o)[iuid];
-          if (!storage)
-            throw new TypeError(name + " is not generic");
-          return storage;
+        this.set = function(o, v){
+          wmset(map, o, v);
+        };
+
+        if (name) {
+          this.wrap = function(o, v){
+            if (wmhas(map, o))
+              throw new TypeError("Object is already a " + name);
+            wmset(map, o, v);
+          };
+          this.unwrap = function(o){
+            var storage = wmget(map, o);
+            if (!storage)
+              throw new TypeError(name + " is not generic");
+            return storage;
+          };
+        }
+      }
+
+      return MapData;
+    })()
+    : (function(){
+      var locker = 'return function(k){if(k===s)return l}',
+          random = Math.random,
+          uids = create(null),
+          slice = callbind(''.slice),
+          indexOf = callbind([].indexOf);
+
+      var createUID = function(){
+        var key = slice(numberToString(random(), 36), 2);
+        return key in uids ? createUID() : uids[key] = key;
+      };
+
+      var globalID = createUID();
+
+      // common per-object storage area made visible by patching getOwnPropertyNames'
+      function getOwnPropertyNames(obj){
+        var props = getProperties(obj);
+        if (hasOwn(obj, globalID))
+          splice(props, indexOf(props, globalID), 1);
+        return props;
+      }
+
+      if (es5) {
+        // check for the random key on an object, create new storage if missing, return it
+        var storage = function(obj){
+          if (!hasOwn(obj, globalID))
+            defineProperty(obj, globalID, { value: create(null) });
+          return obj[globalID];
+        };
+
+        define(Object, getOwnPropertyNames);
+      } else {
+
+        var toStringToString = function(s){
+          function toString(){ return s }
+          return toString[toString_] = toString;
+        }(Object[prototype_][toString_]+'');
+
+        // store the values on a custom valueOf in order to hide them but store them locally
+        var storage = function(obj){
+          if (hasOwn(obj, toString_) && globalID in obj[toString_])
+            return obj[toString_][globalID];
+
+          if (!(toString_ in obj))
+            throw new Error("Can't store values for "+obj);
+
+          var oldToString = obj[toString_];
+          function toString(){ return oldToString.call(this) }
+          obj[toString_] = toString;
+          toString[toString_] = toStringToString;
+          return toString[globalID] = {};
         };
       }
-    }
 
-    return MapData;
-  }());
+
+
+      // shim for [[MapData]] from es6 spec, and pulls double duty as WeakMap storage
+      function MapData(name){
+        var puid = createUID(),
+            iuid = createUID(),
+            secret = {};
+
+        secret[iuid] = { writable: true, value: undefined };
+
+        var attach = function(obj){
+          var store = storage(obj);
+          if (hasOwn(store, puid))
+            return store[puid](secret);
+
+          var lockbox = create(null, secret);
+          defineProperty(store, puid, {
+            value: new Function('s', 'l', locker)(secret, lockbox)
+          });
+          return lockbox;
+        };
+
+        this.get = function(o){
+          return attach(o)[iuid];
+        };
+        this.set = function(o, v){
+          attach(o)[iuid] = v;
+        };
+
+        if (name) {
+          this.wrap = function(o, v){
+            var lockbox = attach(o);
+            if (lockbox[iuid])
+              throw new TypeError("Object is already a " + name);
+            lockbox[iuid] = v;
+          };
+          this.unwrap = function(o){
+            var storage = attach(o)[iuid];
+            if (!storage)
+              throw new TypeError(name + " is not generic");
+            return storage;
+          };
+        }
+      }
+
+      return MapData;
+    }());
 
   var exporter = (function(){
     // [native code] looks slightly different in each engine
@@ -275,11 +311,13 @@ void function(string_, object_, function_, prototype_, toString_,
     }
   }
 
+  var WM, HM, M;
+
   // ###############
   // ### WeakMap ###
   // ###############
 
-  var WM = exporter('WeakMap', function(wrap, unwrap){
+  WM = builtinWeakMap ? (exports.WeakMap = global.WeakMap) : exporter('WeakMap', function(wrap, unwrap){
     var prototype = WeakMap[prototype_];
     var validate = function(key){
       if (key == null || typeof key !== object_ && typeof key !== function_)
@@ -361,7 +399,7 @@ void function(string_, object_, function_, prototype_, toString_,
   // ### HashMap ###
   // ###############
 
-  var HM = exporter('HashMap', function(wrap, unwrap){
+  HM = exporter('HashMap', function(wrap, unwrap){
     // separate numbers, strings, and atoms to compensate for key coercion to string
 
     var prototype = HashMap[prototype_],
@@ -513,132 +551,138 @@ void function(string_, object_, function_, prototype_, toString_,
   // ### Map ###
   // ###########
 
-  var M = exporter('Map', function(wrap, unwrap){
-    var prototype = Map[prototype_],
-        wm = WM[prototype_],
-        hm = HM[prototype_],
-        mget    = [callbind(hm.get), callbind(wm.get)],
-        mset    = [callbind(hm.set), callbind(wm.set)],
-        mhas    = [callbind(hm.has), callbind(wm.has)],
-        mdelete = [callbind(hm['delete']), callbind(wm['delete'])];
+  if ('Map' in global && 'forEach' in global.Map.prototype) {
+    M = exports.Map = global.Map;
+  } else {
+    M = exporter('Map', function(wrap, unwrap){
+      var BuiltinMap = global.Map,
+          prototype = Map[prototype_],
+          wm = WM[prototype_],
+          hm = (BuiltinMap || HM)[prototype_],
+          mget    = [callbind(hm.get), callbind(wm.get)],
+          mset    = [callbind(hm.set), callbind(wm.set)],
+          mhas    = [callbind(hm.has), callbind(wm.has)],
+          mdelete = [callbind(hm['delete']), callbind(wm['delete'])];
 
-    var type = function(o){
-      return o != null && typeof o === object_ || typeof o === function_ ? 1 : 0;
-    }
+      var type = BuiltinMap
+        ? function(){ return 0 }
+        : function(o){ return +(typeof o === object_ ? o !== null : typeof o === function_) }
 
-    /**
-     * @class         Map
-     * @description   Collection that allows any kind of value to be a key.
-     * @param         {Iterable} [iterable]  An item to populate the collection with.
-     */
-    function Map(iterable){
-      if (this === global || this == null || this === prototype)
-        return new Map(iterable);
+      var init = BuiltinMap
+        ? function(){ return { 0: new BuiltinMap } }
+        : function(){ return { 0: new HM, 1: new WM } };
 
-      wrap(this, {
-        0: new HM,
-        1: new WM,
-        keys: [],
-        values: []
-      });
+      /**
+       * @class         Map
+       * @description   Collection that allows any kind of value to be a key.
+       * @param         {Iterable} [iterable]  An item to populate the collection with.
+       */
+      function Map(iterable){
+        if (this === global || this == null || this === prototype)
+          return new Map(iterable);
 
-      var self = this;
-      iterable && initialize(iterable, function(value, key){
-        call(set, self, value, key);
-      });
-    }
-    /**
-     * @method       <get>
-     * @description  Retrieve the value in the collection that matches key
-     * @param        {Any} key
-     * @return       {Any}
-     */
-    function get(key){
-      var data = unwrap(this),
-          t = type(key);
-      return data.values[mget[t](data[t], key)];
-    }
-    /**
-     * @method       <set>
-     * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
-     * @param        {Any} key
-     * @param        {Any} val
-     **/
-    function set(key, value){
-      var data = unwrap(this),
-          t = type(key),
-          index = mget[t](data[t], key);
+        var data = init();
+        data.keys = [];
+        data.values = [];
+        wrap(this, data);
 
-      if (index === undefined) {
-        mset[t](data[t], key, data.keys.length);
-        push(data.keys, key);
-        push(data.values, value);
-      } else {
-        data.keys[index] = key;
-        data.values[index] = value;
+        var self = this;
+        iterable && initialize(iterable, function(value, key){
+          call(set, self, value, key);
+        });
       }
-    }
-    /**
-     * @method       <has>
-     * @description  Check if key exists in the collection.
-     * @param        {Any} key
-     * @return       {Boolean} is in collection
-     **/
-    function has(key){
-      var t = type(key);
-      return mhas[t](unwrap(this)[t], key);
-    }
-    /**
-     * @method       <delete>
-     * @description  Remove key and matching value if found
-     * @param        {Any} key
-     * @return       {Boolean} true if item was in collection
-     */
-    function delete_(key){
-      var data = unwrap(this),
-          t = type(key),
-          index = mget[t](data[t], key);
+      /**
+       * @method       <get>
+       * @description  Retrieve the value in the collection that matches key
+       * @param        {Any} key
+       * @return       {Any}
+       */
+      function get(key){
+        var data = unwrap(this),
+            t = type(key);
+        return data.values[mget[t](data[t], key)];
+      }
+      /**
+       * @method       <set>
+       * @description  Add or update a pair in the collection. Enforces uniqueness by overwriting.
+       * @param        {Any} key
+       * @param        {Any} val
+       **/
+      function set(key, value){
+        var data = unwrap(this),
+            t = type(key),
+            index = mget[t](data[t], key);
 
-      if (index === undefined)
-        return false;
+        if (index === undefined) {
+          mset[t](data[t], key, data.keys.length);
+          push(data.keys, key);
+          push(data.values, value);
+        } else {
+          data.keys[index] = key;
+          data.values[index] = value;
+        }
+      }
+      /**
+       * @method       <has>
+       * @description  Check if key exists in the collection.
+       * @param        {Any} key
+       * @return       {Boolean} is in collection
+       **/
+      function has(key){
+        var t = type(key);
+        return mhas[t](unwrap(this)[t], key);
+      }
+      /**
+       * @method       <delete>
+       * @description  Remove key and matching value if found
+       * @param        {Any} key
+       * @return       {Boolean} true if item was in collection
+       */
+      function delete_(key){
+        var data = unwrap(this),
+            t = type(key),
+            index = mget[t](data[t], key);
 
-      mdelete[t](data[t], key);
-      splice(data.keys, index, 1);
-      splice(data.values, index, 1);
-      return true;
-    }
-    /**
-     * @method       <size>
-     * @description  Retrieve the amount of items in the collection
-     * @return       {Number}
-     */
-    function size(){
-      return unwrap(this).keys.length;
-    }
-    /**
-     * @method       <forEach>
-     * @description  Loop through the collection raising callback for each
-     * @param        {Function} callback  `callback(value, key)`
-     * @param        {Object}   context    The `this` binding for callbacks, default null
-     */
-    function forEach(callback, context){
-      var data = unwrap(this),
-          keys = data.keys,
-          values = data.values;
+        if (index === undefined)
+          return false;
 
-      context = context == null ? global : context;
+        mdelete[t](data[t], key);
+        splice(data.keys, index, 1);
+        splice(data.values, index, 1);
+        return true;
+      }
+      /**
+       * @method       <size>
+       * @description  Retrieve the amount of items in the collection
+       * @return       {Number}
+       */
+      function size(){
+        return unwrap(this).keys.length;
+      }
+      /**
+       * @method       <forEach>
+       * @description  Loop through the collection raising callback for each
+       * @param        {Function} callback  `callback(value, key)`
+       * @param        {Object}   context    The `this` binding for callbacks, default null
+       */
+      function forEach(callback, context){
+        var data = unwrap(this),
+            keys = data.keys,
+            values = data.values;
 
-      for (var i=0, len=keys.length; i < len; i++)
-        call(callback, context, values[i], keys[i], this);
-    }
+        context = context == null ? global : context;
 
-    delete_ = fixDelete(delete_,
-      ['type', 'unwrap', 'call', 'splice'],
-      [type, unwrap, call, splice]
-    );
-    return [Map, get, set, has, delete_, size, forEach];
-  });
+        for (var i=0, len=keys.length; i < len; i++)
+          call(callback, context, values[i], keys[i], this);
+      }
 
+      delete_ = fixDelete(delete_,
+        ['type', 'unwrap', 'call', 'splice'],
+        [type, unwrap, call, splice]
+      );
+      return [Map, get, set, has, delete_, size, forEach];
+    });
+  }
 
 
   // ###########
@@ -725,4 +769,3 @@ void function(string_, object_, function_, prototype_, toString_,
 }('string', 'object', 'function', 'prototype', 'toString',
   Array, Object, Function, Function.prototype, (0, eval)('this'),
   typeof exports === 'undefined' ? this : exports, {});
-
