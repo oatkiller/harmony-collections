@@ -70,6 +70,44 @@ void function(string_, object_, function_, prototype_, toString_,
         return object;
       };
 
+
+  function Hash(){}
+
+  if (es5) {
+    void function(ObjectCreate){
+      Hash.prototype = ObjectCreate(null);
+      function inherit(obj){
+        return ObjectCreate(obj);
+      }
+      Hash.inherit = inherit;
+    }(Object.create);
+  } else {
+    void function(F){
+      var iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      iframe.src = 'javascript:'
+      Hash.prototype = iframe.contentWindow.Object.prototype;
+      document.body.removeChild(iframe);
+      iframe = null;
+
+      var props = ['constructor', 'hasOwnProperty', 'propertyIsEnumerable',
+                   'isProtoypeOf', 'toLocaleString', 'toString', 'valueOf'];
+
+      for (var i=0; i < props.length; i++)
+        delete Hash.prototype[props[i]];
+
+      function inherit(obj){
+        F.prototype = obj;
+        obj = new F;
+        F.prototype = null;
+        return obj;
+      }
+
+      Hash.inherit = inherit;
+    }(function(){});
+  }
+
   var defineProperty = es5
     ? Object.defineProperty
     : function(object, key, desc) {
@@ -139,7 +177,7 @@ void function(string_, object_, function_, prototype_, toString_,
     : (function(){
       var locker = 'return function(k){if(k===s)return l}',
           random = Math.random,
-          uids = create(null),
+          uids = new Hash,
           slice = callbind(''.slice),
           indexOf = callbind([].indexOf);
 
@@ -162,7 +200,7 @@ void function(string_, object_, function_, prototype_, toString_,
         // check for the random key on an object, create new storage if missing, return it
         var storage = function(obj){
           if (!hasOwn(obj, globalID))
-            defineProperty(obj, globalID, { value: create(null) });
+            defineProperty(obj, globalID, { value: new Hash });
           return obj[globalID];
         };
 
@@ -196,16 +234,15 @@ void function(string_, object_, function_, prototype_, toString_,
       function MapData(name){
         var puid = createUID(),
             iuid = createUID(),
-            secret = {};
-
-        secret[iuid] = { writable: true, value: undefined };
+            secret = { value: undefined };
 
         var attach = function(obj){
           var store = storage(obj);
           if (hasOwn(store, puid))
             return store[puid](secret);
 
-          var lockbox = create(null, secret);
+          var lockbox = new Hash;
+          defineProperty(lockbox, iuid, secret);
           defineProperty(store, puid, {
             value: new Function('s', 'l', locker)(secret, lockbox)
           });
@@ -406,31 +443,15 @@ void function(string_, object_, function_, prototype_, toString_,
         STRING = 0, NUMBER = 1, OTHER = 2,
         others = { 'true': true, 'false': false, 'null': null, 0: -0 };
 
-    if ('toString' in create(null)) {
-      // in ie8 make an attempt to prevent Object.prototype builtins from intruding
-      var coerce = function(key){
-        return typeof key === string_ ? '_'+key : ''+key;
-      };
-      var uncoerceString = function(key){
-        return key.slice(1);
-      }
-    } else {
-      var proto = Math.random().toString(36).slice(2);
+    var proto = Math.random().toString(36).slice(2);
 
-      // otherwise just protect against __proto__ tainting
-
-      var uncoerceString = function(key){
-        return key === proto ? '__proto__' : key;
-      };
-
-      var coerce = function(key){
-        return key === '__proto__' ? proto : key;
-      };
-    }
+    var coerce = function(key){
+      return key === '__proto__' ? proto : key;
+    };
 
     var uncoerce = function(type, key){
       switch (type) {
-        case STRING: return uncoerceString(key);
+        case STRING: return key === proto ? '__proto__' : key;
         case NUMBER: return +key;
         case OTHER: return others[key];
       }
@@ -459,9 +480,9 @@ void function(string_, object_, function_, prototype_, toString_,
 
       wrap(this, {
         size: 0,
-        0: create(null),
-        1: create(null),
-        2: create(null)
+        0: new Hash,
+        1: new Hash,
+        2: new Hash
       });
 
       var self = this;
