@@ -572,10 +572,12 @@ void function(string_, object_, function_, prototype_, toString_,
   // ### Map ###
   // ###########
 
+  // if a fully implemented Map exists then use it
   if ('Map' in global && 'forEach' in global.Map.prototype) {
     M = exports.Map = global.Map;
   } else {
     M = exporter('Map', function(wrap, unwrap){
+      // attempt to use an existing partially implemented Map
       var BuiltinMap = global.Map,
           prototype = Map[prototype_],
           wm = WM[prototype_],
@@ -589,6 +591,7 @@ void function(string_, object_, function_, prototype_, toString_,
         ? function(){ return 0 }
         : function(o){ return +(typeof o === object_ ? o !== null : typeof o === function_) }
 
+      // if we have a builtin Map we can let it do most of the heavy lifting
       var init = BuiltinMap
         ? function(){ return { 0: new BuiltinMap } }
         : function(){ return { 0: new HM, 1: new WM } };
