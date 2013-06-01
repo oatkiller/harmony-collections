@@ -782,9 +782,9 @@ void function(string_, object_, function_, prototype_, toString_,
     function forEach(callback, context){
       var index = 0,
           self = this;
-      mforEach(unwrap(this, function(key){
+      mforEach(unwrap(this), function(key){
         call(callback, this, key, index++, self);
-      }, context));
+      }, context);
     }
 
     delete_ = fixDelete(delete_, ['mdelete', 'unwrap'], [mdelete, unwrap]);
