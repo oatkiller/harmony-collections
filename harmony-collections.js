@@ -234,7 +234,7 @@ void function(string_, object_, function_, prototype_, toString_,
       function MapData(name){
         var puid = createUID(),
             iuid = createUID(),
-            secret = { value: undefined };
+            secret = { value: undefined, writable: true };
 
         var attach = function(obj){
           var store = storage(obj);
