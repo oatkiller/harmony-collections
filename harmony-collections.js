@@ -736,7 +736,7 @@ void function(string_, object_, function_, prototype_, toString_,
 
       var self = this;
       iterable && initialize(iterable, function(value, key){
-        call(add, self, key);
+        call(add, self, value);
       });
     }
     /**
