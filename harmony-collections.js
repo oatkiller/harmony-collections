@@ -73,7 +73,7 @@ void function(string_, object_, function_, prototype_, toString_,
 
   function Hash(){}
 
-  if (es5) {
+  if (es5 || typeof document === "undefined") {
     void function(ObjectCreate){
       Hash.prototype = ObjectCreate(null);
       function inherit(obj){
