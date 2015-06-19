@@ -1,0 +1,18 @@
+{
+  "name": "harmony-collections",
+  "main": "harmony-collections.js",
+  "version": "0.3.7",
+  "homepage": "http://benvie.github.com/harmony-collections",
+  "authors": ["Brandon Benvie <http://bbenvie.com>"],
+  "description": "Shim to provide Map, Set, and WeakMap if they're not available, with non-leaky O(1) lookup WeakMaps",
+  "moduleType": ["node"],
+  "keywords": ["harmony", "collection", "weakmap", "map", "set", "ecmascript", "es6", "shim", "garbage collection", "gc"],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
